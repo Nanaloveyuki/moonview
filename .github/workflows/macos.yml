@@ -21,3 +21,5 @@ jobs:
         run: moon check --target native
       - name: Compile and run package tests
         run: moon test --target native
+      - name: Probe WKWebView runtime
+        run: moon run src/examples/macos_probe --target native
