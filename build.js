@@ -102,7 +102,7 @@ function main() {
       link_flags: native.linkFlags,
     });
   } else if (process.platform === "darwin") {
-    const linkFlags = "-framework WebKit -framework AppKit -framework Foundation";
+    const linkFlags = "-framework WebKit -framework AppKit -framework Foundation -lc++";
     vars.MOONVIEW_WKWEBVIEW_CC_LINK_FLAGS = linkFlags;
     linkConfigs.push({
       package: "Nanaloveyuki/moonview/macos",
