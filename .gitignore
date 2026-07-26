@@ -1,2 +1,7 @@
 # ref
 ref/
+
+# Local MoonBit build and native SDK caches
+_build/
+.mooncakes/
+.tools/

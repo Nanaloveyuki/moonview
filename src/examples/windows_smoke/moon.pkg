@@ -1,0 +1,13 @@
+import {
+  "Nanaloveyuki/moonview",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+options(
+  "native-stub": [ "host.c" ],
+  link: { "native": { "cc-link-flags": "user32.lib" } },
+  targets: { "main.mbt": [ "native" ] },
+)

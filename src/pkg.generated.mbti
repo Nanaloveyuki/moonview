@@ -1,0 +1,87 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Nanaloveyuki/moonview"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn available() -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) enum NavigationDecision {
+  Allow
+  Deny
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Rect {
+  x : Int
+  y : Int
+  width : Int
+  height : Int
+} derive(Eq, @debug.Debug)
+pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Self
+
+pub struct WebView {
+  // private fields
+}
+pub fn WebView::add_init_script(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::create(UInt64, WebViewOptions) -> Result[Self, WebViewError]
+pub fn WebView::destroy(Self) -> Result[Unit, WebViewError]
+pub fn WebView::eval(Self, String, String) -> Result[Unit, WebViewError]
+pub fn WebView::focus(Self) -> Result[Unit, WebViewError]
+pub fn WebView::go_back(Self) -> Result[Unit, WebViewError]
+pub fn WebView::go_forward(Self) -> Result[Unit, WebViewError]
+pub fn WebView::lifecycle(Self) -> WebViewLifecycle
+pub fn WebView::load_html(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::navigate(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::reload(Self) -> Result[Unit, WebViewError]
+pub fn WebView::set_bounds(Self, Rect) -> Result[Unit, WebViewError]
+pub fn WebView::set_visible(Self, Bool) -> Result[Unit, WebViewError]
+pub fn WebView::stop(Self) -> Result[Unit, WebViewError]
+
+pub(all) enum WebViewError {
+  Unavailable
+  CreateRejected
+  Destroyed
+  NativeFailure(Int, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WebViewEvent {
+  Ready
+  CreationFailed(WebViewError)
+  PageMessage(String)
+  NavigationStarting(String)
+  SourceChanged(String)
+  NavigationCompleted(String)
+  NavigationFailed(String, WebViewError)
+  TitleChanged(String)
+  HistoryChanged(Bool, Bool)
+  ScriptResult(String, String)
+  ScriptFailed(String, WebViewError)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WebViewLifecycle {
+  Creating
+  Ready
+  Failed(WebViewError)
+  Destroyed
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WebViewOptions {
+  bounds : Rect
+  initial_url : String
+  initial_html : String
+  initialization_script : String
+  visible : Bool
+  on_event : (WebViewEvent) -> Unit
+  on_navigation : (String) -> NavigationDecision
+}
+pub fn WebViewOptions::new(bounds~ : Rect, initial_url? : String, initial_html? : String, initialization_script? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision) -> Self
+
+// Type aliases
+
+// Traits

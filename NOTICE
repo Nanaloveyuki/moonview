@@ -1,0 +1,8 @@
+moonview
+Copyright 2026 Nanaloveyuki
+
+This product includes no copied source from Wry or moui_webview. Their public
+APIs and documented platform behavior informed independent implementation work.
+
+WebView2 Runtime, WebView2 SDK, Windows SDK, WKWebView, and WebKitGTK remain
+subject to their respective upstream terms when used or redistributed.

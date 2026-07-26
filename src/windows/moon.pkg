@@ -1,0 +1,12 @@
+supported_targets = "native"
+
+options(
+  link: {
+    "native": {
+      "stub-cc-flags": "${build.MOONVIEW_WEBVIEW2_STUB_CC_FLAGS}",
+      "cc-link-flags": "${build.MOONVIEW_WEBVIEW2_CC_LINK_FLAGS}",
+    },
+  },
+  "native-stub": [ "webview2_bridge.cpp" ],
+  targets: { },
+)
