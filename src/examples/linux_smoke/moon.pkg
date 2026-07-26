@@ -10,7 +10,8 @@ options(
   "native-stub": [ "host.c" ],
   link: {
     "native": {
-      "cc-link-flags": "${build.MOONVIEW_WINDOWS_SMOKE_CC_LINK_FLAGS}",
+      "stub-cc-flags": "${build.MOONVIEW_WEBKITGTK_STUB_CC_FLAGS}",
+      "cc-link-flags": "${build.MOONVIEW_WEBKITGTK_CC_LINK_FLAGS}",
     },
   },
   targets: { "main.mbt": [ "native" ] },

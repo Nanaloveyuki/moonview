@@ -1,31 +1,32 @@
 ///|
-/// An embedded WebView2 associated with a caller-owned Win32 HWND.
+/// An embedded platform WebView associated with a caller-owned native container.
 pub struct WebView {
   priv handle : UInt64
 }
 
 ///|
-/// Returns whether the Windows WebView2 backend was compiled in and can create
-/// native views on the current host.
+/// Returns whether the native backend is available on the current host.
 pub fn available() -> Bool {
-  @windows.available() != 0
+  native_available()
 }
 
 ///|
-/// Starts asynchronous creation of a WebView2 child view in `hwnd`.
+/// Starts asynchronous creation of a WebView child view in `parent_handle`.
 ///
-/// The caller must keep `hwnd` alive and pump its STA message loop until the
-/// listener receives `WebViewEvent::Ready` or `CreationFailed`.
+/// The caller must keep the native parent container alive and run its UI event
+/// loop until the listener receives `WebViewEvent::Ready` or `CreationFailed`.
+/// On Windows, this is an `HWND`; on macOS, an `NSView*`; and on Linux, a
+/// `GtkFixed*`.
 pub fn WebView::create(
-  hwnd : UInt64,
+  parent_handle : UInt64,
   options : WebViewOptions,
 ) -> Result[WebView, WebViewError] {
   if !available() {
     Err(WebViewError::Unavailable)
   } else {
     ensure_native_callbacks()
-    let handle = @windows.create(
-      hwnd,
+    let handle = native_create(
+      parent_handle,
       options.bounds.x,
       options.bounds.y,
       options.bounds.width,
@@ -40,9 +41,9 @@ pub fn WebView::create(
       register_view(handle, options)
       let view = WebView::{ handle, }
       if !options.visible {
-        @windows.set_visible(handle, 0)
+        native_set_visible(handle, false)
       }
-      @windows.start(handle)
+      native_start(handle)
       Ok(view)
     }
   }
@@ -59,7 +60,7 @@ pub fn WebView::set_bounds(
   bounds : Rect,
 ) -> Result[Unit, WebViewError] {
   self.with_handle(handle => {
-    @windows.set_bounds(handle, bounds.x, bounds.y, bounds.width, bounds.height)
+    native_set_bounds(handle, bounds.x, bounds.y, bounds.width, bounds.height)
   })
 }
 
@@ -68,14 +69,12 @@ pub fn WebView::set_visible(
   self : WebView,
   visible : Bool,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => {
-    @windows.set_visible(handle, if visible { 1 } else { 0 })
-  })
+  self.with_handle(handle => native_set_visible(handle, visible))
 }
 
 ///|
 pub fn WebView::focus(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.focus(handle))
+  self.with_handle(handle => native_focus(handle))
 }
 
 ///|
@@ -83,7 +82,7 @@ pub fn WebView::navigate(
   self : WebView,
   url : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.navigate(handle, encode_utf8(url)))
+  self.with_handle(handle => native_navigate(handle, encode_utf8(url)))
 }
 
 ///|
@@ -91,27 +90,27 @@ pub fn WebView::load_html(
   self : WebView,
   html : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.load_html(handle, encode_utf8(html)))
+  self.with_handle(handle => native_load_html(handle, encode_utf8(html)))
 }
 
 ///|
 pub fn WebView::reload(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.reload(handle))
+  self.with_handle(handle => native_reload(handle))
 }
 
 ///|
 pub fn WebView::stop(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.stop(handle))
+  self.with_handle(handle => native_stop(handle))
 }
 
 ///|
 pub fn WebView::go_back(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.go_back(handle))
+  self.with_handle(handle => native_go_back(handle))
 }
 
 ///|
 pub fn WebView::go_forward(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.go_forward(handle))
+  self.with_handle(handle => native_go_forward(handle))
 }
 
 ///|
@@ -119,9 +118,7 @@ pub fn WebView::add_init_script(
   self : WebView,
   script : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => {
-    @windows.add_init_script(handle, encode_utf8(script))
-  })
+  self.with_handle(handle => native_add_init_script(handle, encode_utf8(script)))
 }
 
 ///|
@@ -131,7 +128,7 @@ pub fn WebView::eval(
   request_id : String,
 ) -> Result[Unit, WebViewError] {
   self.with_handle(handle => {
-    @windows.eval(handle, encode_utf8(script), encode_utf8(request_id))
+    native_eval(handle, encode_utf8(script), encode_utf8(request_id))
   })
 }
 
@@ -141,7 +138,7 @@ pub fn WebView::post_message(
   self : WebView,
   message : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => @windows.post_message(handle, encode_utf8(message)))
+  self.with_handle(handle => native_post_message(handle, encode_utf8(message)))
 }
 
 ///|
@@ -149,13 +146,13 @@ pub fn WebView::post_message(
 pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
   if self.lifecycle() == WebViewLifecycle::Destroyed {
     Ok(())
-  } else if @windows.destroy(self.handle) != 0 {
+  } else if native_destroy(self.handle) != 0 {
     unregister_view(self.handle)
     Ok(())
   } else {
     Err(
       WebViewError::NativeFailure(
-        0, "WebView destroy must run on its creation STA thread",
+        0, "WebView destroy must run on its creation UI thread",
       ),
     )
   }

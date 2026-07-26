@@ -1,5 +1,7 @@
 #include <moonbit.h>
 
+#if defined(_WIN32)
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -752,3 +754,37 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(uint64_t handle
   queue_or_run(find_view(handle),
                {Command::PostMessage, utf8_to_wide(bytes_to_utf8(message)), ""});
 }
+
+#else
+
+using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
+                                 moonbit_bytes_t, int32_t);
+using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_event_callback(
+    EventTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
+    NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
+    uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t,
+    moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_bounds(
+    uint64_t, int32_t, int32_t, int32_t, int32_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_visible(uint64_t, int32_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_focus(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_navigate(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_load_html(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_reload(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_stop(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_back(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_forward(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(
+    uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(
+    uint64_t, moonbit_bytes_t) {}
+
+#endif
