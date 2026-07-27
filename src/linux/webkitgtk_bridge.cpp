@@ -416,7 +416,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t handle,
   const std::string wrapped = "Promise.resolve().then(() => eval(" +
       javascript_string(bytes_to_utf8(script)) + ")).then(value => " +
       "window.webkit.messageHandlers.moonview.postMessage('e:" +
-      encode_base64(bytes_to_utf8(request_id)) + ":' + btoa(unescape(encodeURIComponent(String(value))))), " +
+      encode_base64(bytes_to_utf8(request_id)) + ":' + btoa(unescape(encodeURIComponent(JSON.stringify(value) ?? 'null')))), " +
       "error => window.webkit.messageHandlers.moonview.postMessage('f:" +
       encode_base64(bytes_to_utf8(request_id)) + ":' + btoa(unescape(encodeURIComponent(String(error))))));";
   execute_javascript(view, wrapped);

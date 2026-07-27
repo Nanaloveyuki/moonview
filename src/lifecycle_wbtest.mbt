@@ -23,6 +23,30 @@ test "native event decoding preserves WebView2 payloads" {
 }
 
 ///|
+test "script results retain their JSON representation" {
+  let string_result = decode_native_event(
+    9,
+    encode_utf8("\"moonview\""),
+    encode_utf8("request-json"),
+    0,
+  )
+  assert_eq(
+    string_result,
+    WebViewEvent::ScriptResult("request-json", "\"moonview\""),
+  )
+  let undefined_result = decode_native_event(
+    9,
+    encode_utf8("null"),
+    encode_utf8("request-undefined"),
+    0,
+  )
+  assert_eq(
+    undefined_result,
+    WebViewEvent::ScriptResult("request-undefined", "null"),
+  )
+}
+
+///|
 test "history decoding is insensitive to field order" {
   let event = decode_native_event(
     8,

@@ -60,7 +60,8 @@ thread and must return promptly.
 
 The injected bridge exposes `window.moonview.postMessage(string)`. Message
 payloads are UTF-8 strings; applications own any JSON or RPC protocol layered
-on top of them.
+on top of them. `WebView::eval` reports `ScriptResult` as JSON text on every
+backend; JavaScript `undefined` is reported as `null`.
 
 ## Embedded Use
 

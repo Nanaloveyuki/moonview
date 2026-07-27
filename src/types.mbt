@@ -36,7 +36,9 @@ pub(all) enum NavigationDecision {
 /// Events emitted on the native UI thread that owns the parent container.
 ///
 /// `ScriptResult` and `ScriptFailed` preserve the request identifier supplied
-/// to `WebView::eval`. Messages are UTF-8 strings without an imposed protocol.
+/// to `WebView::eval`. `ScriptResult` is JSON text; an `undefined` JavaScript
+/// result is represented as `null`. Page messages are UTF-8 strings without an
+/// imposed protocol.
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
