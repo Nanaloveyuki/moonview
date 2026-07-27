@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Nanaloveyuki/moonview/ohos"
+
+// Values
+pub fn attach(Bytes) -> UInt64
+
+pub fn available() -> Int
+
+pub fn destroy(UInt64) -> Int
+
+pub fn eval(UInt64, Bytes) -> Unit
+
+pub fn install_event_callback(FuncRef[((UInt64, Int, Bytes, Bytes, Int) -> Unit, UInt64, Int, Bytes, Bytes, Int) -> Unit], (UInt64, Int, Bytes, Bytes, Int) -> Unit) -> Unit
+
+pub fn install_media_permission_callback(FuncRef[((UInt64, Int, Bytes) -> Int, UInt64, Int, Bytes) -> Int], (UInt64, Int, Bytes) -> Int) -> Unit
+
+pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
+
+pub fn install_protocol_callback(FuncRef[((UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit, UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit], (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit) -> Unit
+
+pub fn reload(UInt64) -> Unit
+
+pub fn start(UInt64) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

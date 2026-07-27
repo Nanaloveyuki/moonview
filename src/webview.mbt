@@ -43,7 +43,13 @@ pub fn WebView::create(
   parent_handle : UInt64,
   options : WebViewOptions,
 ) -> Result[WebView, WebViewError] {
-  if !available() {
+  if native_is_ohos() {
+    Err(
+      WebViewError::Unsupported(
+        "OpenHarmony Web components must be created by ArkUI and attached with WebView::attach_ohos",
+      ),
+    )
+  } else if !available() {
     Err(WebViewError::Unavailable)
   } else {
     ensure_native_callbacks()
@@ -72,6 +78,40 @@ pub fn WebView::create(
       }
       native_start(handle)
       Ok(view)
+    }
+  }
+}
+
+///|
+/// Attaches Moonview to an ArkUI-owned OpenHarmony `Web` component.
+///
+/// Call this on the ArkUI UI thread after the host has created the component
+/// with the same stable `web_tag`. The host remains responsible for its source,
+/// layout, visibility, and permission policy. The API is experimental and
+/// currently supports only `reload`, fire-and-forget `eval`, and `destroy`.
+pub fn WebView::attach_ohos(
+  web_tag : String,
+  options : OhosAttachOptions,
+) -> Result[WebView, WebViewError] {
+  if web_tag.length() == 0 {
+    Err(WebViewError::NativeFailure(0, "OpenHarmony Web tag must not be empty"))
+  } else if !native_is_ohos() {
+    Err(
+      WebViewError::Unsupported(
+        "OpenHarmony ArkWeb is unavailable on this backend",
+      ),
+    )
+  } else if !available() {
+    Err(WebViewError::Unavailable)
+  } else {
+    ensure_native_callbacks()
+    let handle = native_attach_ohos(encode_utf8(web_tag))
+    if handle == 0 {
+      Err(WebViewError::CreateRejected)
+    } else {
+      register_ohos_view(handle, options)
+      native_start_ohos(handle)
+      Ok(WebView::{ handle, })
     }
   }
 }
@@ -122,7 +162,7 @@ pub fn WebView::load_html(
 
 ///|
 pub fn WebView::reload(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_reload(handle))
+  self.with_ohos_supported_handle(handle => native_reload(handle))
 }
 
 ///|
@@ -215,7 +255,7 @@ pub fn WebView::eval(
   script : String,
   request_id : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => {
+  self.with_ohos_supported_handle(handle => {
     native_eval(handle, encode_utf8(script), encode_utf8(request_id))
   })
 }
@@ -237,26 +277,34 @@ pub fn WebView::respond_protocol(
   request_id : String,
   response : ProtocolResponse,
 ) -> Result[Unit, WebViewError] {
-  match self.lifecycle() {
-    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => Err(error)
-    _ =>
-      if native_respond_protocol(
-          self.handle,
-          encode_utf8(request_id),
-          response.status,
-          encode_http_headers(response.headers),
-          response.body,
-        ) !=
-        0 {
-        Ok(())
-      } else {
-        Err(
-          WebViewError::NativeFailure(
-            0, "Protocol request is no longer pending",
-          ),
-        )
-      }
+  if native_is_ohos() {
+    Err(
+      WebViewError::Unsupported(
+        "OpenHarmony custom-scheme responses require a future IO-thread adapter",
+      ),
+    )
+  } else {
+    match self.lifecycle() {
+      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+      WebViewLifecycle::Failed(error) => Err(error)
+      _ =>
+        if native_respond_protocol(
+            self.handle,
+            encode_utf8(request_id),
+            response.status,
+            encode_http_headers(response.headers),
+            response.body,
+          ) !=
+          0 {
+          Ok(())
+        } else {
+          Err(
+            WebViewError::NativeFailure(
+              0, "Protocol request is no longer pending",
+            ),
+          )
+        }
+    }
   }
 }
 
@@ -279,6 +327,27 @@ pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
 
 ///|
 fn WebView::with_handle(
+  self : WebView,
+  operation : (UInt64) -> Unit,
+) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ if native_is_ohos() =>
+      Err(
+        WebViewError::Unsupported(
+          "This operation is controlled by the ArkUI host or is not exposed by ArkWeb API level 12",
+        ),
+      )
+    _ => {
+      operation(self.handle)
+      Ok(())
+    }
+  }
+}
+
+///|
+fn WebView::with_ohos_supported_handle(
   self : WebView,
   operation : (UInt64) -> Unit,
 ) -> Result[Unit, WebViewError] {

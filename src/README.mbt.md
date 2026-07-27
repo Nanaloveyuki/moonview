@@ -28,6 +28,34 @@ Use `WebViewEvent::Ready` before relying on a loaded document. Page code sends
 UTF-8 strings with `window.moonview.postMessage(...)`; native code receives
 `PageMessage` and sends strings with `WebView::post_message(...)`.
 
+## OpenHarmony ArkWeb
+
+OpenHarmony hosts `Web` in ArkUI rather than accepting an arbitrary native
+parent handle. Create that component in ArkUI, then attach on its UI thread by
+its stable `webTag`:
+
+```moonbit nocheck
+let options = OhosAttachOptions::new(
+  on_event=event => match event {
+    WebViewEvent::Ready => println("ArkWeb attached")
+    _ => ()
+  },
+)
+
+match WebView::attach_ohos("main-web", options) {
+  Ok(view) => {
+    ignore(view.reload())
+    ignore(view.eval("console.log('moonview')", "startup"))
+  }
+  Err(error) => abort("ArkWeb attach rejected: \{error}")
+}
+```
+
+The experimental API 12 adapter supports attach, `reload`, fire-and-forget
+`eval`, and detachment. ArkUI owns source, layout, visibility, and permissions;
+the remaining desktop-style controls return `Unsupported`. `destroy` detaches
+Moonview and does not destroy the ArkUI `Web` component.
+
 ## Application Resources
 
 Call `register_custom_scheme(...)` before the first `WebView::create`, then

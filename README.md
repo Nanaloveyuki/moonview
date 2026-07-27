@@ -34,6 +34,7 @@ the parent is destroyed.
 | Windows | A caller-owned `HWND` on an STA UI thread |
 | macOS | A caller-owned `NSView*` on the main thread |
 | Linux | A caller-owned `GtkFixed*` on the GTK UI thread |
+| OpenHarmony | An ArkUI-owned `Web` component identified by `webTag` |
 
 This raw-handle boundary is intentional so a window-management library can own
 native window creation and event dispatch. Popup and `window.open` requests are
@@ -70,6 +71,39 @@ ignore(view.set_bounds(@moonview.Rect::new(x=0, y=0, width=1024, height=768)))
 ignore(view.navigate("https://example.com/docs"))
 ignore(view.destroy())
 ```
+
+## OpenHarmony ArkWeb (Experimental)
+
+OpenHarmony does not expose native creation of an arbitrary child WebView. The
+ArkUI host creates the `Web` component, selects its source and permissions, and
+then attaches Moonview using that component's stable `webTag` on the ArkUI UI
+thread:
+
+```moonbit nocheck
+let options = @moonview.OhosAttachOptions::new(
+  on_event=event => match event {
+    @moonview.WebViewEvent::Ready => println("ArkWeb controller attached")
+    _ => ()
+  },
+)
+
+match @moonview.WebView::attach_ohos("main-web", options) {
+  Ok(view) => {
+    ignore(view.reload())
+    // API 12 executes this without a ScriptResult callback.
+    ignore(view.eval("console.log('from MoonBit')", "startup"))
+  }
+  Err(error) => abort("ArkWeb attach rejected: \{error}")
+}
+```
+
+This first adapter targets OpenHarmony API 12 and supports attach, `reload`,
+fire-and-forget `eval`, and detachment through `destroy`. ArkUI retains source,
+layout, visibility, focus, and media-permission ownership. Navigation, HTML
+loading, init scripts, history, zoom, page messaging, custom schemes, and
+script-result callbacks return `Unsupported` until their thread-safe native
+adapters are implemented. `destroy` detaches Moonview only; it never destroys
+the ArkUI component.
 
 ## Page Communication
 
@@ -137,6 +171,12 @@ unsupported on older platform runtimes.
   system.
 - Linux: GTK 3 and the `webkit2gtk-4.1` development package available through
   `pkg-config`. The Linux smoke also works through WSLg.
+- OpenHarmony: an app manifest declaring `SystemCapability.Web.Webview.Core`
+  and the user-supplied ArkWeb NDK. Set `MOONVIEW_OHOS_ARKWEB_SDK_DIR` (or
+  `MOONVIEW_OHOS_NDK_HOME`) to a directory containing
+  `arkweb_interface.h` and `libohweb.so`; alternatively set both
+  `MOONVIEW_OHOS_ARKWEB_INCLUDE` and `MOONVIEW_OHOS_ARKWEB_LIB`. Moonview
+  does not vendor or read SDK files from `ref/`.
 
 ## Verify A Checkout
 

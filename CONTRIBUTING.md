@@ -20,6 +20,10 @@ change.
   environment variables documented in the README.
 - macOS: Xcode Command Line Tools.
 - Linux: GTK 3 and `webkit2gtk-4.1` development packages.
+- OpenHarmony: an ArkWeb NDK supplied through `MOONVIEW_OHOS_ARKWEB_SDK_DIR`
+  (or `MOONVIEW_OHOS_NDK_HOME`), or through the explicit include and library
+  environment variables in the README. Do not vendor SDK files or use `ref/`
+  as a build dependency.
 
 The repository does not commit WebView2 SDK binaries. Local SDK caches and
 MoonBit build output are ignored.
