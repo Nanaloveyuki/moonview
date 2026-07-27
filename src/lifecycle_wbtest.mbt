@@ -93,6 +93,15 @@ test "OpenHarmony attachment uses the common ready lifecycle" {
 }
 
 ///|
+test "rejected native commands become observable failures" {
+  assert_eq(command_result("navigate", 1), Ok(()))
+  assert_eq(
+    command_result("navigate", 0),
+    Err(WebViewError::NativeFailure(0, "WebView backend rejected navigate")),
+  )
+}
+
+///|
 test "custom protocol headers use a length-prefixed UTF-8 envelope" {
   let headers = [
     HttpHeader::new(name="Content-Type", value="text/plain; charset=utf-8"),

@@ -295,15 +295,16 @@ void drain_pending(const std::shared_ptr<View> &view) {
   }
 }
 
-void queue_or_run(const std::shared_ptr<View> &view, Command command) {
+bool queue_or_run(const std::shared_ptr<View> &view, Command command) {
   if (!view || view->destroyed) {
-    return;
+    return false;
   }
   if (!view->ready) {
     view->pending.push_back(std::move(command));
-    return;
+    return true;
   }
   run_command(view, command);
+  return true;
 }
 
 void install_handlers(const std::shared_ptr<View> &view) {
@@ -799,73 +800,76 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t handle) 
   return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_bounds(
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_bounds(
     uint64_t handle, int32_t x, int32_t y, int32_t width, int32_t height) {
   const std::shared_ptr<View> view = find_view(handle);
   if (!view || view->destroyed) {
-    return;
+    return 0;
   }
   view->bounds = {x, y, x + width, y + height};
   apply_bounds(view);
+  return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_visible(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_visible(uint64_t handle,
                                                                     int32_t visible) {
   const std::shared_ptr<View> view = find_view(handle);
   if (!view || view->destroyed) {
-    return;
+    return 0;
   }
   view->visible = visible != 0;
   apply_bounds(view);
+  return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_focus(uint64_t handle) {
-  queue_or_run(find_view(handle), {Command::Focus, L"", ""});
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_focus(uint64_t handle) {
+  return queue_or_run(find_view(handle), {Command::Focus, L"", ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_navigate(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_navigate(uint64_t handle,
                                                                  moonbit_bytes_t url) {
-  queue_or_run(find_view(handle), {Command::Navigate, utf8_to_wide(bytes_to_utf8(url)), ""});
+  return queue_or_run(find_view(handle), {Command::Navigate, utf8_to_wide(bytes_to_utf8(url)), ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_load_html(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_load_html(uint64_t handle,
                                                                   moonbit_bytes_t html) {
-  queue_or_run(find_view(handle), {Command::LoadHtml, utf8_to_wide(bytes_to_utf8(html)), ""});
+  return queue_or_run(find_view(handle), {Command::LoadHtml, utf8_to_wide(bytes_to_utf8(html)), ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_reload(uint64_t handle) {
-  queue_or_run(find_view(handle), {Command::Reload, L"", ""});
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_reload(uint64_t handle) {
+  return queue_or_run(find_view(handle), {Command::Reload, L"", ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_stop(uint64_t handle) {
-  queue_or_run(find_view(handle), {Command::Stop, L"", ""});
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_stop(uint64_t handle) {
+  return queue_or_run(find_view(handle), {Command::Stop, L"", ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_back(uint64_t handle) {
-  queue_or_run(find_view(handle), {Command::GoBack, L"", ""});
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_go_back(uint64_t handle) {
+  return queue_or_run(find_view(handle), {Command::GoBack, L"", ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_forward(uint64_t handle) {
-  queue_or_run(find_view(handle), {Command::GoForward, L"", ""});
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_go_forward(uint64_t handle) {
+  return queue_or_run(find_view(handle), {Command::GoForward, L"", ""}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_init(uint64_t handle,
                                                              moonbit_bytes_t script) {
   const std::shared_ptr<View> view = find_view(handle);
   if (!view || view->destroyed) {
-    return;
+    return 0;
   }
   const std::wstring text = utf8_to_wide(bytes_to_utf8(script));
   if (!view->ready) {
     view->document_scripts.push_back(text);
-    return;
+    return 1;
   }
   view->webview->AddScriptToExecuteOnDocumentCreated(text.c_str(), nullptr);
+  return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_zoom(uint64_t handle,
                                                                  double factor) {
-  queue_or_run(find_view(handle), {Command::SetZoom, L"", "", factor});
+  return queue_or_run(find_view(handle), {Command::SetZoom, L"", "", factor}) ? 1 : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t handle) {
@@ -886,17 +890,17 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_
   return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_eval(uint64_t handle,
                                                              moonbit_bytes_t script,
                                                              moonbit_bytes_t request_id) {
-  queue_or_run(find_view(handle),
-               {Command::Eval, utf8_to_wide(bytes_to_utf8(script)), bytes_to_utf8(request_id)});
+  return queue_or_run(find_view(handle),
+                      {Command::Eval, utf8_to_wide(bytes_to_utf8(script)), bytes_to_utf8(request_id)}) ? 1 : 0;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_post_message(uint64_t handle,
                                                                      moonbit_bytes_t message) {
-  queue_or_run(find_view(handle),
-               {Command::PostMessage, utf8_to_wide(bytes_to_utf8(message)), ""});
+  return queue_or_run(find_view(handle),
+                      {Command::PostMessage, utf8_to_wide(bytes_to_utf8(message)), ""}) ? 1 : 0;
 }
 
 #else
@@ -930,23 +934,23 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_bounds(
-    uint64_t, int32_t, int32_t, int32_t, int32_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_visible(uint64_t, int32_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_focus(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_navigate(uint64_t, moonbit_bytes_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_load_html(uint64_t, moonbit_bytes_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_reload(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_stop(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_back(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_forward(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t, moonbit_bytes_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t, double) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_bounds(
+    uint64_t, int32_t, int32_t, int32_t, int32_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_visible(uint64_t, int32_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_focus(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_navigate(uint64_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_load_html(uint64_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_reload(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_stop(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_go_back(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_go_forward(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_init(uint64_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_zoom(uint64_t, double) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(
-    uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(
-    uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_eval(
+    uint64_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_post_message(
+    uint64_t, moonbit_bytes_t) { return 0; }
 
 #endif

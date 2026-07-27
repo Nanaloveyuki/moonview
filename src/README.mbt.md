@@ -24,6 +24,10 @@ match WebView::create(parent_handle, options) {
 }
 ```
 
+Control methods return `Ok(())` only after the native backend accepts or queues
+the command for a live view. Navigation and JavaScript outcomes remain
+asynchronous and are reported through `WebViewEvent`.
+
 Use `WebViewEvent::Ready` before relying on a loaded document. Page code sends
 UTF-8 strings with `window.moonview.postMessage(...)`; native code receives
 `PageMessage` and sends strings with `WebView::post_message(...)`. Page-side

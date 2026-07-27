@@ -8,7 +8,7 @@ pub fn available() -> Int
 
 pub fn destroy(UInt64) -> Int
 
-pub fn eval(UInt64, Bytes) -> Unit
+pub fn eval(UInt64, Bytes) -> Int
 
 pub fn install_event_callback(FuncRef[((UInt64, Int, Bytes, Bytes, Int) -> Unit, UInt64, Int, Bytes, Bytes, Int) -> Unit], (UInt64, Int, Bytes, Bytes, Int) -> Unit) -> Unit
 
@@ -18,7 +18,7 @@ pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Byte
 
 pub fn install_protocol_callback(FuncRef[((UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit, UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit], (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit) -> Unit
 
-pub fn reload(UInt64) -> Unit
+pub fn reload(UInt64) -> Int
 
 pub fn start(UInt64) -> Unit
 

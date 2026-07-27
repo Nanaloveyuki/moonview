@@ -94,40 +94,40 @@ pub extern "C" fn set_bounds(
   y : Int,
   width : Int,
   height : Int,
-) -> Unit = "moonview_linux_set_bounds"
+) -> Int = "moonview_linux_set_bounds"
 
 ///|
-pub extern "C" fn set_visible(view : UInt64, visible : Int) -> Unit = "moonview_linux_set_visible"
+pub extern "C" fn set_visible(view : UInt64, visible : Int) -> Int = "moonview_linux_set_visible"
 
 ///|
-pub extern "C" fn focus(view : UInt64) -> Unit = "moonview_linux_focus"
+pub extern "C" fn focus(view : UInt64) -> Int = "moonview_linux_focus"
 
 ///|
 #borrow(url)
-pub extern "C" fn navigate(view : UInt64, url : Bytes) -> Unit = "moonview_linux_navigate"
+pub extern "C" fn navigate(view : UInt64, url : Bytes) -> Int = "moonview_linux_navigate"
 
 ///|
 #borrow(html)
-pub extern "C" fn load_html(view : UInt64, html : Bytes) -> Unit = "moonview_linux_load_html"
+pub extern "C" fn load_html(view : UInt64, html : Bytes) -> Int = "moonview_linux_load_html"
 
 ///|
-pub extern "C" fn reload(view : UInt64) -> Unit = "moonview_linux_reload"
+pub extern "C" fn reload(view : UInt64) -> Int = "moonview_linux_reload"
 
 ///|
-pub extern "C" fn stop(view : UInt64) -> Unit = "moonview_linux_stop"
+pub extern "C" fn stop(view : UInt64) -> Int = "moonview_linux_stop"
 
 ///|
-pub extern "C" fn go_back(view : UInt64) -> Unit = "moonview_linux_go_back"
+pub extern "C" fn go_back(view : UInt64) -> Int = "moonview_linux_go_back"
 
 ///|
-pub extern "C" fn go_forward(view : UInt64) -> Unit = "moonview_linux_go_forward"
+pub extern "C" fn go_forward(view : UInt64) -> Int = "moonview_linux_go_forward"
 
 ///|
 #borrow(script)
-pub extern "C" fn add_init_script(view : UInt64, script : Bytes) -> Unit = "moonview_linux_init"
+pub extern "C" fn add_init_script(view : UInt64, script : Bytes) -> Int = "moonview_linux_init"
 
 ///|
-pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Unit = "moonview_linux_set_zoom"
+pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Int = "moonview_linux_set_zoom"
 
 ///|
 pub extern "C" fn open_devtools(view : UInt64) -> Int = "moonview_linux_open_devtools"
@@ -141,8 +141,8 @@ pub extern "C" fn eval(
   view : UInt64,
   script : Bytes,
   request_id : Bytes,
-) -> Unit = "moonview_linux_eval"
+) -> Int = "moonview_linux_eval"
 
 ///|
 #borrow(message)
-pub extern "C" fn post_message(view : UInt64, message : Bytes) -> Unit = "moonview_linux_post_message"
+pub extern "C" fn post_message(view : UInt64, message : Bytes) -> Int = "moonview_linux_post_message"
