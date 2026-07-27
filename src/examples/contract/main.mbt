@@ -16,6 +16,7 @@ pub fn Contract::new(finish : (Bool) -> Unit) -> Contract {
 ///|
 pub fn Contract::start(
   self : Contract,
+  context : @moonview.WebContext,
   parent_handle : UInt64,
 ) -> Result[Unit, @moonview.WebViewError] {
   match @moonview.register_custom_scheme("moonview") {
@@ -36,7 +37,8 @@ pub fn Contract::start(
         on_event=event => self.handle_event(event),
         on_navigation=_url => @moonview.NavigationDecision::Allow,
       )
-      match @moonview.WebView::create(parent_handle, options) {
+      match
+        @moonview.WebView::create_in_context(context, parent_handle, options) {
         Ok(view) => {
           self.view = Some(view)
           Ok(())

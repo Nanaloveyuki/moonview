@@ -19,7 +19,7 @@ fn main {
   let contract = @contract.Contract::new(success => {
     finish(if success { 1 } else { 0 })
   })
-  match contract.start(hwnd) {
+  match contract.start(@moonview.WebContext::persistent(), hwnd) {
     Ok(_) => ()
     Err(_error) => {
       println("moonview Windows contract: create rejected")
