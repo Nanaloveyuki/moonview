@@ -13,14 +13,14 @@ let options = WebViewOptions::new(
   initial_html="<!doctype html><title>moonview</title>",
   on_event=event => match event {
     WebViewEvent::Ready => println("ready")
-    WebViewEvent::CreationFailed(error) => println("failed: \{error}")
+    WebViewEvent::CreationFailed(_error) => println("failed")
     _ => ()
   },
 )
 
 match WebView::create(parent_handle, options) {
   Ok(view) => ignore(view.post_message("host-ready"))
-  Err(error) => abort("create rejected: \{error}")
+  Err(_error) => abort("create rejected")
 }
 ```
 
@@ -53,7 +53,7 @@ match WebView::attach_ohos("main-web", options) {
     ignore(view.reload())
     ignore(view.eval("console.log('moonview')", "startup"))
   }
-  Err(error) => abort("ArkWeb attach rejected: \{error}")
+  Err(_error) => abort("ArkWeb attach rejected")
 }
 ```
 

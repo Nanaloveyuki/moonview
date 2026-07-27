@@ -52,7 +52,7 @@ let options = @moonview.WebViewOptions::new(
   initialization_script="console.log('moonview initialized')",
   on_event=event => match event {
     @moonview.WebViewEvent::Ready => println("webview ready")
-    @moonview.WebViewEvent::CreationFailed(error) => println("create failed: \{error}")
+    @moonview.WebViewEvent::CreationFailed(_error) => println("create failed")
     _ => ()
   },
   on_navigation=_url => @moonview.NavigationDecision::Allow,
@@ -60,7 +60,7 @@ let options = @moonview.WebViewOptions::new(
 
 match @moonview.WebView::create(parent_handle, options) {
   Ok(view) => ignore(view.set_visible(true))
-  Err(error) => abort("WebView creation rejected: \{error}")
+  Err(_error) => abort("WebView creation rejected")
 }
 ```
 
@@ -97,7 +97,7 @@ match @moonview.WebView::attach_ohos("main-web", options) {
     // API 12 executes this without a ScriptResult callback.
     ignore(view.eval("console.log('from MoonBit')", "startup"))
   }
-  Err(error) => abort("ArkWeb attach rejected: \{error}")
+  Err(_error) => abort("ArkWeb attach rejected")
 }
 ```
 
