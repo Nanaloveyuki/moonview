@@ -26,6 +26,8 @@ pub fn load_html(UInt64, Bytes) -> Unit
 
 pub fn navigate(UInt64, Bytes) -> Unit
 
+pub fn open_devtools(UInt64) -> Int
+
 pub fn post_message(UInt64, Bytes) -> Unit
 
 pub fn reload(UInt64) -> Unit

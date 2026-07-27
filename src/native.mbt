@@ -241,6 +241,16 @@ fn native_set_zoom(handle : UInt64, factor : Double) -> Unit {
 }
 
 ///|
+fn native_open_devtools(handle : UInt64) -> Int {
+  match active_backend() {
+    NativeBackend::Windows => @windows.open_devtools(handle)
+    NativeBackend::MacOS => @macos.open_devtools(handle)
+    NativeBackend::Linux => @linux.open_devtools(handle)
+    NativeBackend::Unsupported => 0
+  }
+}
+
+///|
 fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Unit {
   match active_backend() {
     NativeBackend::Windows => @windows.eval(handle, script, request_id)

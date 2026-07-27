@@ -290,8 +290,9 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   view->webview = WEBKIT_WEB_VIEW(webkit_web_view_new_with_user_content_manager(
       view->content_manager));
   const std::string configured_user_agent = bytes_to_utf8(user_agent);
+  WebKitSettings *settings = webkit_web_view_get_settings(view->webview);
+  webkit_settings_set_enable_developer_extras(settings, TRUE);
   if (!configured_user_agent.empty()) {
-    WebKitSettings *settings = webkit_web_view_get_settings(view->webview);
     webkit_settings_set_user_agent(settings, configured_user_agent.c_str());
   }
   add_document_script(view.get(), bridge_script());
@@ -419,6 +420,16 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_zoom(uint64_t handle,
   }
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_devtools(uint64_t handle) {
+  View *view = find_view(handle);
+  if (view == nullptr) {
+    return 0;
+  }
+  WebKitWebInspector *inspector = webkit_web_view_get_inspector(view->webview);
+  webkit_web_inspector_show(inspector);
+  return 1;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -469,6 +480,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_init(uint64_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_zoom(uint64_t, double) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_post_message(uint64_t, moonbit_bytes_t) {}
 

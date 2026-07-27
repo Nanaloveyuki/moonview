@@ -37,6 +37,7 @@ pub fn WebView::go_forward(Self) -> Result[Unit, WebViewError]
 pub fn WebView::lifecycle(Self) -> WebViewLifecycle
 pub fn WebView::load_html(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::navigate(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::open_devtools(Self) -> Result[Unit, WebViewError]
 pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::reload(Self) -> Result[Unit, WebViewError]
 pub fn WebView::set_bounds(Self, Rect) -> Result[Unit, WebViewError]
@@ -46,6 +47,7 @@ pub fn WebView::stop(Self) -> Result[Unit, WebViewError]
 
 pub(all) enum WebViewError {
   Unavailable
+  Unsupported(String)
   CreateRejected
   Destroyed
   NativeFailure(Int, String)

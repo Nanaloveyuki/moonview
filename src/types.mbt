@@ -20,6 +20,7 @@ pub(all) enum WebViewLifecycle {
 /// Failures reported before or during native WebView creation, or after disposal.
 pub(all) enum WebViewError {
   Unavailable
+  Unsupported(String)
   CreateRejected
   Destroyed
   NativeFailure(Int, String)

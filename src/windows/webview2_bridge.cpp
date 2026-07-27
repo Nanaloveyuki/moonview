@@ -112,6 +112,7 @@ struct Command {
     GoForward,
     Focus,
     SetZoom,
+    OpenDevTools,
     Eval,
     PostMessage,
   } kind;
@@ -219,6 +220,9 @@ void run_command(const std::shared_ptr<View> &view, const Command &command) {
     break;
   case Command::SetZoom:
     view->controller->put_ZoomFactor(command.factor);
+    break;
+  case Command::OpenDevTools:
+    view->webview->OpenDevToolsWindow();
     break;
   case Command::Eval: {
     const std::weak_ptr<View> weak_view = view;
@@ -764,6 +768,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t handle,
   queue_or_run(find_view(handle), {Command::SetZoom, L"", "", factor});
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t handle) {
+  const std::shared_ptr<View> view = find_view(handle);
+  if (!view || view->destroyed) {
+    return 0;
+  }
+  queue_or_run(view, {Command::OpenDevTools, L"", ""});
+  return 1;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(uint64_t handle,
                                                              moonbit_bytes_t script,
                                                              moonbit_bytes_t request_id) {
@@ -805,6 +818,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t, double) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(
     uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(

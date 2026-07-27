@@ -85,6 +85,8 @@ configured in `WebViewOptions` is installed before the first document loads;
 `add_init_script` applies to documents loaded after it is registered.
 `user_agent` configures the engine before its first document, and
 `set_zoom_factor` accepts positive page zoom values.
+`open_devtools` is supported by WebView2 and WebKitGTK; WKWebView has no
+supported public API to open its inspector, so macOS returns `Unsupported`.
 
 ## Validation
 

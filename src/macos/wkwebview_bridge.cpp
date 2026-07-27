@@ -613,6 +613,10 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_zoom(uint64_t handle,
   }
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_devtools(uint64_t) {
+  return 0;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -663,6 +667,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_init(uint64_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_zoom(uint64_t, double) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_post_message(uint64_t, moonbit_bytes_t) {}
 

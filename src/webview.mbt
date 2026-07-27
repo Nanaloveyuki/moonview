@@ -140,6 +140,28 @@ pub fn WebView::set_zoom_factor(
 }
 
 ///|
+/// Opens the platform developer tools for this WebView.
+///
+/// This is supported by the Windows and Linux backends. macOS does not expose
+/// a supported public API for programmatically opening WKWebView inspector.
+pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ =>
+      if native_open_devtools(self.handle) != 0 {
+        Ok(())
+      } else {
+        Err(
+          WebViewError::Unsupported(
+            "WebView developer tools are unavailable on this backend",
+          ),
+        )
+      }
+  }
+}
+
+///|
 pub fn WebView::eval(
   self : WebView,
   script : String,

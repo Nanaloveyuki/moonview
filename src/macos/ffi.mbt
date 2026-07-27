@@ -84,6 +84,9 @@ pub extern "C" fn add_init_script(view : UInt64, script : Bytes) -> Unit = "moon
 pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Unit = "moonview_macos_set_zoom"
 
 ///|
+pub extern "C" fn open_devtools(view : UInt64) -> Int = "moonview_macos_open_devtools"
+
+///|
 #borrow(script, request_id)
 pub extern "C" fn eval(
   view : UInt64,
