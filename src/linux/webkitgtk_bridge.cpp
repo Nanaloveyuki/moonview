@@ -49,7 +49,6 @@ void *g_media_permission_closure = nullptr;
 std::atomic<uint64_t> g_next_view_handle{1};
 std::vector<std::string> g_custom_schemes;
 bool g_custom_schemes_locked = false;
-bool g_custom_schemes_installed = false;
 
 moonbit_bytes_t make_bytes(const std::string &value) {
   moonbit_bytes_t bytes = moonbit_make_bytes(static_cast<int32_t>(value.size()), 0);
@@ -135,8 +134,42 @@ struct View {
   bool started = false;
 };
 
+struct Context {
+  WebKitWebContext *web_context = nullptr;
+};
+
 std::unordered_map<uint64_t, std::unique_ptr<View>> g_views;
 std::unordered_map<WebKitWebView *, View *> g_webview_views;
+std::unordered_map<uint64_t, Context> g_contexts;
+
+void install_custom_schemes(WebKitWebContext *context);
+
+WebKitWebContext *context_for(uint64_t context_id, bool ephemeral,
+                               const std::string &data_directory) {
+  const auto existing = g_contexts.find(context_id);
+  if (existing != g_contexts.end()) {
+    return existing->second.web_context;
+  }
+  Context context;
+  if (context_id == 0) {
+    context.web_context = webkit_web_context_get_default();
+  } else if (ephemeral) {
+    context.web_context = webkit_web_context_new_ephemeral();
+  } else {
+    WebKitWebsiteDataManager *manager = webkit_website_data_manager_new(
+        "base-data-directory", data_directory.c_str(),
+        "base-cache-directory", data_directory.c_str(), nullptr);
+    context.web_context = webkit_web_context_new_with_website_data_manager(manager);
+    g_object_unref(manager);
+  }
+  if (context.web_context == nullptr) {
+    return nullptr;
+  }
+  install_custom_schemes(context.web_context);
+  WebKitWebContext *result = context.web_context;
+  g_contexts.emplace(context_id, context);
+  return result;
+}
 
 View *find_view(uint64_t handle) {
   const auto found = g_views.find(handle);
@@ -493,18 +526,13 @@ void handle_scheme_request(WebKitURISchemeRequest *request, gpointer) {
       make_bytes(read_request_body(webkit_uri_scheme_request_get_http_body(request))));
 }
 
-void install_custom_schemes() {
-  if (g_custom_schemes_installed) {
-    return;
-  }
-  WebKitWebContext *context = webkit_web_context_get_default();
+void install_custom_schemes(WebKitWebContext *context) {
   WebKitSecurityManager *security_manager = webkit_web_context_get_security_manager(context);
   for (const std::string &scheme : g_custom_schemes) {
     webkit_security_manager_register_uri_scheme_as_secure(security_manager, scheme.c_str());
     webkit_web_context_register_uri_scheme(context, scheme.c_str(), handle_scheme_request,
                                            nullptr, nullptr);
   }
-  g_custom_schemes_installed = true;
 }
 
 gboolean handle_permission_request(WebKitWebView *webview,
@@ -632,6 +660,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_current_thread_token() {
 }
 
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
+    uint64_t context_id, int32_t ephemeral, moonbit_bytes_t data_directory,
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
     moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
@@ -642,7 +671,11 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   if (parent_widget == nullptr || !GTK_IS_FIXED(parent_widget)) {
     return 0;
   }
-  install_custom_schemes();
+  WebKitWebContext *context = context_for(context_id, ephemeral != 0,
+                                           bytes_to_utf8(data_directory));
+  if (context == nullptr) {
+    return 0;
+  }
   auto view = std::make_unique<View>();
   view->handle = g_next_view_handle.fetch_add(1);
   view->parent = GTK_FIXED(parent_widget);
@@ -652,8 +685,13 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
     g_object_unref(view->content_manager);
     return 0;
   }
-  view->webview = WEBKIT_WEB_VIEW(webkit_web_view_new_with_user_content_manager(
-      view->content_manager));
+  view->webview = WEBKIT_WEB_VIEW(g_object_new(
+      WEBKIT_TYPE_WEB_VIEW, "web-context", context,
+      "user-content-manager", view->content_manager, nullptr));
+  if (view->webview == nullptr) {
+    g_object_unref(view->content_manager);
+    return 0;
+  }
   const std::string configured_user_agent = bytes_to_utf8(user_agent);
   WebKitSettings *settings = webkit_web_view_get_settings(view->webview);
   webkit_settings_set_enable_developer_extras(settings, TRUE);
@@ -870,7 +908,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_current_thread_token() { r
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) { return 0; }

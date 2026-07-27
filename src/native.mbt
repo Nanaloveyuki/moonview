@@ -228,6 +228,9 @@ fn native_respond_protocol(
 
 ///|
 fn native_create(
+  context_id : UInt64,
+  ephemeral : Bool,
+  data_directory : Bytes,
   parent_handle : UInt64,
   x : Int,
   y : Int,
@@ -241,18 +244,18 @@ fn native_create(
   match active_backend() {
     NativeBackend::Windows =>
       @windows.create(
-        parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
-        user_agent,
+        context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
+        initial_url, initial_html, initialization_script, user_agent,
       )
     NativeBackend::MacOS =>
       @macos.create(
-        parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
-        user_agent,
+        context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
+        initial_url, initial_html, initialization_script, user_agent,
       )
     NativeBackend::Linux =>
       @linux.create(
-        parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
-        user_agent,
+        context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
+        initial_url, initial_html, initialization_script, user_agent,
       )
     NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0

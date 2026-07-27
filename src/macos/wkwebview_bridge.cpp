@@ -775,7 +775,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_current_thread_token() {
 }
 
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
-    uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
+    uint64_t, int32_t ephemeral, moonbit_bytes_t, uint64_t parent_handle,
+    int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
     moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
   if (!is_main_thread()) {
@@ -804,6 +805,22 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
   release_object(channel);
   id configuration = send<id>(class_object("WKWebViewConfiguration"), selector("alloc"));
   configuration = send<id>(configuration, selector("init"));
+  if (ephemeral != 0) {
+    id data_store = send<id>(class_object("WKWebsiteDataStore"),
+                             selector("nonPersistentDataStore"));
+    if (data_store == nil) {
+      release_object(configuration);
+      g_navigation_views.erase(view->navigation_delegate);
+      g_message_views.erase(view->message_delegate);
+      g_ui_views.erase(view->ui_delegate);
+      release_object(view->navigation_delegate);
+      release_object(view->message_delegate);
+      release_object(view->ui_delegate);
+      release_object(view->content_manager);
+      return 0;
+    }
+    send<void, id>(configuration, selector("setWebsiteDataStore:"), data_store);
+  }
   send<void, id>(configuration, selector("setUserContentController:"), view->content_manager);
   for (const std::string &scheme : g_custom_schemes) {
     id handler = send<id>(reinterpret_cast<id>(scheme_handler_class()), selector("new"));
@@ -1080,7 +1097,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_current_thread_token() { r
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) { return 0; }

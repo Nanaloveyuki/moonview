@@ -77,6 +77,24 @@ Control methods return `Ok(())` only when the native backend accepts or queues
 the command for a live view. Page navigation and JavaScript execution remain
 asynchronous; observe their final outcomes through `WebViewEvent`.
 
+## Browser Data Contexts
+
+The default `WebView::create` uses the shared persistent context. Reuse a
+`WebContext` when multiple views must share browser data, and pass it to
+`create_in_context`:
+
+```moonbit nocheck
+let context = @moonview.WebContext::persistent(data_directory="F:/app-data/moonview")
+match @moonview.WebView::create_in_context(context, parent_handle, options) {
+  Ok(view) => ignore(view.set_visible(true))
+  Err(_error) => abort("WebView creation rejected")
+}
+```
+
+Custom data directories are supported on Windows and Linux. Ephemeral contexts
+are supported on macOS and Linux. Unsupported combinations return `Unsupported`
+instead of falling back to another browser profile.
+
 ## OpenHarmony ArkWeb (Experimental)
 
 OpenHarmony does not expose native creation of an arbitrary child WebView. The
