@@ -6,7 +6,7 @@ pub fn add_init_script(UInt64, Bytes) -> Int
 
 pub fn available() -> Int
 
-pub fn create(UInt64, Bool, Bytes, UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes, Bytes) -> UInt64
+pub fn create(UInt64, Bool, Bytes, UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes, Bytes, Int, Int, Int) -> UInt64
 
 pub fn current_thread_token() -> UInt64
 

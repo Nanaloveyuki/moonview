@@ -182,6 +182,10 @@ struct View {
   std::wstring user_agent;
   std::vector<std::wstring> document_scripts;
   std::deque<Command> pending;
+  size_t pending_bytes = 0;
+  size_t max_pending_commands = 0;
+  size_t max_pending_command_bytes = 0;
+  size_t max_protocol_request_body_bytes = 0;
   ComPtr<ICoreWebView2Controller> controller;
   ComPtr<ICoreWebView2> webview;
 };
@@ -232,49 +236,48 @@ void apply_bounds(const std::shared_ptr<View> &view) {
   view->controller->put_IsVisible(view->visible ? TRUE : FALSE);
 }
 
-void run_command(const std::shared_ptr<View> &view, const Command &command) {
+size_t command_storage_bytes(const Command &command) {
+  if (command.value.size() > (SIZE_MAX - command.request_id.size()) / sizeof(wchar_t)) {
+    return SIZE_MAX;
+  }
+  return command.value.size() * sizeof(wchar_t) + command.request_id.size();
+}
+
+HRESULT run_command(const std::shared_ptr<View> &view, const Command &command) {
   if (!view || view->destroyed || !view->webview) {
-    return;
+    return E_UNEXPECTED;
   }
   switch (command.kind) {
   case Command::Navigate:
-    view->webview->Navigate(command.value.c_str());
-    break;
+    return view->webview->Navigate(command.value.c_str());
   case Command::LoadHtml:
-    view->webview->NavigateToString(command.value.c_str());
-    break;
+    return view->webview->NavigateToString(command.value.c_str());
   case Command::Reload:
-    view->webview->Reload();
-    break;
+    return view->webview->Reload();
   case Command::Stop:
-    view->webview->Stop();
-    break;
+    return view->webview->Stop();
   case Command::GoBack:
-    view->webview->GoBack();
-    break;
+    return view->webview->GoBack();
   case Command::GoForward:
-    view->webview->GoForward();
-    break;
+    return view->webview->GoForward();
   case Command::Focus:
-    view->controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
-    break;
+    return view->controller ?
+        view->controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC) : E_UNEXPECTED;
   case Command::SetZoom:
-    view->controller->put_ZoomFactor(command.factor);
-    break;
+    return view->controller ? view->controller->put_ZoomFactor(command.factor) : E_UNEXPECTED;
   case Command::OpenDevTools:
-    view->webview->OpenDevToolsWindow();
-    break;
+    return view->webview->OpenDevToolsWindow();
   case Command::OpenPrintDialog: {
     ComPtr<ICoreWebView2_16> printer;
-    if (SUCCEEDED(view->webview.As(&printer))) {
-      printer->ShowPrintUI(COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER);
-    }
-    break;
+    const HRESULT result = view->webview.As(&printer);
+    return SUCCEEDED(result) && printer ?
+        printer->ShowPrintUI(COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER) :
+        (SUCCEEDED(result) ? E_NOINTERFACE : result);
   }
   case Command::Eval: {
     const std::weak_ptr<View> weak_view = view;
     const std::string request_id = command.request_id;
-    view->webview->ExecuteScript(
+    return view->webview->ExecuteScript(
         command.value.c_str(),
         Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
             [weak_view, request_id](HRESULT result, LPCWSTR json_result) -> HRESULT {
@@ -290,11 +293,23 @@ void run_command(const std::shared_ptr<View> &view, const Command &command) {
               return S_OK;
             })
             .Get());
-    break;
   }
   case Command::PostMessage:
-    view->webview->PostWebMessageAsString(command.value.c_str());
-    break;
+    return view->webview->PostWebMessageAsString(command.value.c_str());
+  }
+  return E_UNEXPECTED;
+}
+
+void report_deferred_command_failure(const std::shared_ptr<View> &view,
+                                     const Command &command, HRESULT result) {
+  const std::string message = hresult_text("WebView2 command", result);
+  if (command.kind == Command::Eval) {
+    emit_event(view, kScriptCompleted, message, command.request_id,
+               static_cast<int32_t>(result));
+  } else if (command.kind == Command::Navigate || command.kind == Command::LoadHtml) {
+    emit_event(view, kNavigationCompleted,
+               command.kind == Command::Navigate ? wide_to_utf8(command.value.c_str()) : "about:blank",
+               message, static_cast<int32_t>(result));
   }
 }
 
@@ -303,17 +318,23 @@ void drain_pending(const std::shared_ptr<View> &view) {
     return;
   }
   if (!view->initial_html.empty()) {
-    run_command(view, {Command::LoadHtml, view->initial_html, ""});
+    const Command command{Command::LoadHtml, view->initial_html, ""};
+    const HRESULT result = run_command(view, command);
+    if (FAILED(result)) report_deferred_command_failure(view, command, result);
     view->initial_html.clear();
     view->initial_url.clear();
   } else if (!view->initial_url.empty()) {
-    run_command(view, {Command::Navigate, view->initial_url, ""});
+    const Command command{Command::Navigate, view->initial_url, ""};
+    const HRESULT result = run_command(view, command);
+    if (FAILED(result)) report_deferred_command_failure(view, command, result);
     view->initial_url.clear();
   }
   while (!view->pending.empty()) {
     Command command = std::move(view->pending.front());
     view->pending.pop_front();
-    run_command(view, command);
+    view->pending_bytes -= command_storage_bytes(command);
+    const HRESULT result = run_command(view, command);
+    if (FAILED(result)) report_deferred_command_failure(view, command, result);
   }
 }
 
@@ -322,11 +343,19 @@ bool queue_or_run(const std::shared_ptr<View> &view, Command command) {
     return false;
   }
   if (!view->ready) {
+    const size_t bytes = command_storage_bytes(command);
+    if ((view->max_pending_commands != 0 &&
+         view->pending.size() >= view->max_pending_commands) ||
+        (view->max_pending_command_bytes != 0 &&
+         (bytes > view->max_pending_command_bytes ||
+          view->pending_bytes > view->max_pending_command_bytes - bytes))) {
+      return false;
+    }
+    view->pending_bytes += bytes;
     view->pending.push_back(std::move(command));
     return true;
   }
-  run_command(view, command);
-  return true;
+  return SUCCEEDED(run_command(view, command));
 }
 
 void install_handlers(const std::shared_ptr<View> &view) {
@@ -773,7 +802,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t context_id, int32_t, moonbit_bytes_t data_directory, uint64_t hwnd,
     int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t url, moonbit_bytes_t html, moonbit_bytes_t initialization_script,
-    moonbit_bytes_t user_agent) {
+    moonbit_bytes_t user_agent, int32_t max_pending_commands,
+    int32_t max_pending_command_bytes, int32_t max_protocol_request_body_bytes) {
   const HWND parent = reinterpret_cast<HWND>(static_cast<uintptr_t>(hwnd));
   if (parent == nullptr || !IsWindow(parent)) {
     return 0;
@@ -788,6 +818,12 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
   view->parent = parent;
   view->thread_id = GetCurrentThreadId();
   view->context_id = context_id;
+  view->max_pending_commands = max_pending_commands > 0 ?
+      static_cast<size_t>(max_pending_commands) : 0;
+  view->max_pending_command_bytes = max_pending_command_bytes > 0 ?
+      static_cast<size_t>(max_pending_command_bytes) : 0;
+  view->max_protocol_request_body_bytes = max_protocol_request_body_bytes > 0 ?
+      static_cast<size_t>(max_protocol_request_body_bytes) : 0;
   view->data_directory = utf8_to_wide(bytes_to_utf8(data_directory));
   view->bounds = {x, y, x + width, y + height};
   view->initial_url = utf8_to_wide(bytes_to_utf8(url));
@@ -933,20 +969,12 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_zoom(uint64_t handle,
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t handle) {
   const std::shared_ptr<View> view = find_view(handle);
-  if (!view || view->destroyed) {
-    return 0;
-  }
-  queue_or_run(view, {Command::OpenDevTools, L"", ""});
-  return 1;
+  return queue_or_run(view, {Command::OpenDevTools, L"", ""}) ? 1 : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_t handle) {
   const std::shared_ptr<View> view = find_view(handle);
-  if (!view || view->destroyed) {
-    return 0;
-  }
-  queue_or_run(view, {Command::OpenPrintDialog, L"", ""});
-  return 1;
+  return queue_or_run(view, {Command::OpenPrintDialog, L"", ""}) ? 1 : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_eval(uint64_t handle,
@@ -994,7 +1022,8 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_current_thread_token() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t,
-    moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+    moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
+    int32_t, int32_t, int32_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_bounds(

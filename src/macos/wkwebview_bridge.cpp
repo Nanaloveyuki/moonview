@@ -211,6 +211,7 @@ struct View {
     CFRunLoopTimerRef timeout = nullptr;
   };
   std::unordered_map<std::string, PendingProtocol> pending_protocols;
+  size_t max_protocol_request_body_bytes = 0;
   std::string initial_url;
   std::string initial_html;
   bool started = false;
@@ -598,6 +599,12 @@ void scheme_task_started(id, SEL, id webview, id task) {
       CFAbsoluteTimeGetCurrent() + 30.0, 0.0, 0, 0, protocol_timeout, &context);
   CFRunLoopAddTimer(CFRunLoopGetMain(), pending.timeout, kCFRunLoopCommonModes);
   view->pending_protocols.emplace(request_id, pending);
+  if (view->max_protocol_request_body_bytes != 0 &&
+      body_size > view->max_protocol_request_body_bytes) {
+    finish_protocol(view, request_id, 413, std::string(4, '\0'),
+                    "Custom-scheme request body exceeds its configured limit");
+    return;
+  }
   g_protocol_trampoline(g_protocol_closure, view->handle, make_bytes(request_id),
       make_bytes(utf8_string(scheme)), make_bytes(utf8_string(method)),
       make_bytes(utf8_string(absolute)), make_bytes(encode_headers(headers)),
@@ -831,7 +838,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     uint64_t, int32_t ephemeral, moonbit_bytes_t, uint64_t parent_handle,
     int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
-    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
+    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent,
+    int32_t, int32_t, int32_t max_protocol_request_body_bytes) {
   if (!is_main_thread()) {
     return 0;
   }
@@ -841,6 +849,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
   }
   auto view = std::make_unique<View>();
   view->handle = g_next_view_handle.fetch_add(1);
+  view->max_protocol_request_body_bytes = max_protocol_request_body_bytes > 0
+      ? static_cast<size_t>(max_protocol_request_body_bytes) : 0;
   view->parent = parent;
   view->content_manager = send<id>(class_object("WKUserContentController"), selector("alloc"));
   view->content_manager = send<id>(view->content_manager, selector("init"));
@@ -1143,7 +1153,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_current_thread_token() { r
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, int32_t, int32_t, int32_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) { return 0; }

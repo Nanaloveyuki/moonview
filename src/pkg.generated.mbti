@@ -155,6 +155,7 @@ pub(all) enum WebViewLifecycle {
 pub(all) struct WebViewOptions {
   context : WebContext
   bounds : Rect
+  resource_limits : WebViewResourceLimits
   initial_url : String
   initial_html : String
   initialization_script : String
@@ -165,7 +166,14 @@ pub(all) struct WebViewOptions {
   on_new_window : (String) -> NewWindowDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
-pub fn WebViewOptions::new(bounds~ : Rect, context? : WebContext, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision, on_new_window? : (String) -> NewWindowDecision, on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision) -> Self
+pub fn WebViewOptions::new(bounds~ : Rect, context? : WebContext, resource_limits? : WebViewResourceLimits, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision, on_new_window? : (String) -> NewWindowDecision, on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision) -> Self
+
+pub(all) struct WebViewResourceLimits {
+  max_pending_commands : Int
+  max_pending_command_bytes : Int
+  max_protocol_request_body_bytes : Int
+} derive(Eq, @debug.Debug)
+pub fn WebViewResourceLimits::new(max_pending_commands? : Int, max_pending_command_bytes? : Int, max_protocol_request_body_bytes? : Int) -> Self
 
 // Type aliases
 

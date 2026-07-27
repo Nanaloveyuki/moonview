@@ -158,6 +158,26 @@ window.moonview.onmessage = event => {
 `eval` reports JSON text through `ScriptResult`; JavaScript `undefined` is
 reported as `null`.
 
+## Resource Limits
+
+Each desktop WebView defaults to 256 commands queued before readiness, 4 MiB
+of queued command storage, and a 4 MiB custom-scheme request body limit. Pass
+`WebViewResourceLimits` through `WebViewOptions` to configure these values;
+`0` disables an individual limit and negative values reject creation with
+`NativeFailure`. Windows, macOS, and Linux enforce this policy.
+
+```moonbit nocheck
+let limits = @moonview.WebViewResourceLimits::new(
+  max_pending_commands=64,
+  max_pending_command_bytes=1024 * 1024,
+  max_protocol_request_body_bytes=1024 * 1024,
+)
+let options = @moonview.WebViewOptions::new(
+  bounds=@moonview.Rect::new(x=0, y=0, width=800, height=600),
+  resource_limits=limits,
+)
+```
+
 ## Serve Application Resources
 
 Register application-owned schemes before the first `WebView::create`. Native
@@ -182,6 +202,8 @@ let response = @moonview.ProtocolResponse::new(
 Use URLs such as `app://ui/index.html`. Windows and WebKitGTK register custom
 schemes as secure origins; WKWebView uses its public URL-scheme handler.
 Unanswered or cancelled requests emit `ProtocolCancelled`.
+Requests whose body exceeds the configured limit receive HTTP `413` locally
+and do not produce a `ProtocolRequest` event.
 
 ## Permissions And Diagnostics
 
