@@ -21,6 +21,7 @@ pub(all) enum WebViewLifecycle {
 pub(all) enum WebViewError {
   Unavailable
   Unsupported(String)
+  ConfigurationLocked
   CreateRejected
   Destroyed
   NativeFailure(Int, String)
@@ -29,6 +30,55 @@ pub(all) enum WebViewError {
 ///|
 /// The decision synchronously returned to a native navigation callback.
 pub(all) enum NavigationDecision {
+  Allow
+  Deny
+} derive(Eq, Debug)
+
+///|
+/// A single HTTP header in a custom-scheme request or response.
+pub(all) struct HttpHeader {
+  name : String
+  value : String
+} derive(Eq, Debug)
+
+///|
+/// A pending custom-scheme request. `body` is unmodified binary request data.
+pub(all) struct ProtocolRequest {
+  id : String
+  scheme : String
+  http_method : String
+  uri : String
+  headers : Array[HttpHeader]
+  body : Bytes
+} derive(Eq, Debug)
+
+///|
+/// A response to a pending custom-scheme request.
+pub(all) struct ProtocolResponse {
+  status : Int
+  headers : Array[HttpHeader]
+  body : Bytes
+} derive(Eq, Debug)
+
+///|
+/// A media capture category requested by page content.
+pub(all) enum MediaPermissionKind {
+  Camera
+  Microphone
+  CameraAndMicrophone
+  Unknown(Int)
+} derive(Eq, Debug)
+
+///|
+/// A synchronous request to access local media devices from an origin.
+pub(all) struct MediaPermissionRequest {
+  kind : MediaPermissionKind
+  origin : String
+} derive(Eq, Debug)
+
+///|
+/// The decision synchronously returned to a native media-permission callback.
+pub(all) enum MediaPermissionDecision {
   Allow
   Deny
 } derive(Eq, Debug)
@@ -52,6 +102,8 @@ pub(all) enum WebViewEvent {
   HistoryChanged(Bool, Bool)
   ScriptResult(String, String)
   ScriptFailed(String, WebViewError)
+  ProtocolRequest(ProtocolRequest)
+  ProtocolCancelled(String)
 } derive(Eq, Debug)
 
 ///|
@@ -68,11 +120,26 @@ pub(all) struct WebViewOptions {
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
+  on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
 
 ///|
 pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
   { x, y, width, height }
+}
+
+///|
+pub fn HttpHeader::new(name~ : String, value~ : String) -> HttpHeader {
+  { name, value }
+}
+
+///|
+pub fn ProtocolResponse::new(
+  status~ : Int,
+  headers? : Array[HttpHeader] = [],
+  body? : Bytes = b"",
+) -> ProtocolResponse {
+  { status, headers, body }
 }
 
 ///|
@@ -85,6 +152,7 @@ pub fn WebViewOptions::new(
   visible? : Bool = true,
   on_event? : (WebViewEvent) -> Unit = ignore_event,
   on_navigation? : (String) -> NavigationDecision = allow_navigation,
+  on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision = deny_media_permission,
 ) -> WebViewOptions {
   {
     bounds,
@@ -95,6 +163,7 @@ pub fn WebViewOptions::new(
     visible,
     on_event,
     on_navigation,
+    on_media_permission,
   }
 }
 
@@ -106,4 +175,11 @@ fn ignore_event(_event : WebViewEvent) -> Unit {
 ///|
 fn allow_navigation(_url : String) -> NavigationDecision {
   NavigationDecision::Allow
+}
+
+///|
+fn deny_media_permission(
+  _request : MediaPermissionRequest,
+) -> MediaPermissionDecision {
+  MediaPermissionDecision::Deny
 }

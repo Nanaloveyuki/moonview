@@ -34,6 +34,65 @@ pub extern "C" fn install_navigation_callback(
   callback : (UInt64, Bytes) -> Int,
 ) -> Unit = "moonview_windows_install_navigation_callback"
 
+///| Protocol callback arguments are `(view, request_id, scheme, method, uri,
+
+///|
+/// headers, body)`. Headers use moonview's binary header envelope.
+#borrow(call_closure)
+#owned(callback)
+pub extern "C" fn install_protocol_callback(
+  call_closure : FuncRef[
+    (
+      (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
+      UInt64,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+    ) -> Unit,
+  ],
+  callback : (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
+) -> Unit = "moonview_windows_install_protocol_callback"
+
+///| Receives media permission requests. Only a return value of `1` allows a
+
+///|
+/// request; the native default is deny.
+#borrow(call_closure)
+#owned(callback)
+pub extern "C" fn install_media_permission_callback(
+  call_closure : FuncRef[
+    ((UInt64, Int, Bytes) -> Int, UInt64, Int, Bytes) -> Int,
+  ],
+  callback : (UInt64, Int, Bytes) -> Int,
+) -> Unit = "moonview_windows_install_media_permission_callback"
+
+///| Registers a secure custom scheme with an authority component. Schemes can
+
+///|
+/// only be registered before the first WebView2 environment is created.
+#borrow(name)
+pub extern "C" fn register_custom_scheme(name : Bytes) -> Int = "moonview_windows_register_custom_scheme"
+
+///|
+/// Prevents subsequent custom-scheme registrations.
+pub extern "C" fn lock_custom_schemes() -> Unit = "moonview_windows_lock_custom_schemes"
+
+///| Completes a deferred custom-scheme request. `headers` uses moonview's
+
+///|
+/// binary header envelope and `body` is returned without text conversion.
+#borrow(request_id, headers, body)
+pub extern "C" fn respond_protocol(
+  view : UInt64,
+  request_id : Bytes,
+  status : Int,
+  headers : Bytes,
+  body : Bytes,
+) -> Int = "moonview_windows_respond_protocol"
+
 ///| Starts asynchronous WebView2 creation for the caller-owned parent HWND.
 
 ///| `url` and `html` are optional UTF-8 initial documents; non-empty `html`

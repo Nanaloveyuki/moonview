@@ -8,13 +8,54 @@ import {
 // Values
 pub fn available() -> Bool
 
+pub fn register_custom_scheme(String) -> Result[Unit, WebViewError]
+
 // Errors
 
 // Types and methods
+pub(all) struct HttpHeader {
+  name : String
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn HttpHeader::new(name~ : String, value~ : String) -> Self
+
+pub(all) enum MediaPermissionDecision {
+  Allow
+  Deny
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MediaPermissionKind {
+  Camera
+  Microphone
+  CameraAndMicrophone
+  Unknown(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MediaPermissionRequest {
+  kind : MediaPermissionKind
+  origin : String
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NavigationDecision {
   Allow
   Deny
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ProtocolRequest {
+  id : String
+  scheme : String
+  http_method : String
+  uri : String
+  headers : Array[HttpHeader]
+  body : Bytes
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProtocolResponse {
+  status : Int
+  headers : Array[HttpHeader]
+  body : Bytes
+} derive(Eq, @debug.Debug)
+pub fn ProtocolResponse::new(status~ : Int, headers? : Array[HttpHeader], body? : Bytes) -> Self
 
 pub(all) struct Rect {
   x : Int
@@ -41,6 +82,7 @@ pub fn WebView::open_devtools(Self) -> Result[Unit, WebViewError]
 pub fn WebView::open_print_dialog(Self) -> Result[Unit, WebViewError]
 pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::reload(Self) -> Result[Unit, WebViewError]
+pub fn WebView::respond_protocol(Self, String, ProtocolResponse) -> Result[Unit, WebViewError]
 pub fn WebView::set_bounds(Self, Rect) -> Result[Unit, WebViewError]
 pub fn WebView::set_visible(Self, Bool) -> Result[Unit, WebViewError]
 pub fn WebView::set_zoom_factor(Self, Double) -> Result[Unit, WebViewError]
@@ -49,6 +91,7 @@ pub fn WebView::stop(Self) -> Result[Unit, WebViewError]
 pub(all) enum WebViewError {
   Unavailable
   Unsupported(String)
+  ConfigurationLocked
   CreateRejected
   Destroyed
   NativeFailure(Int, String)
@@ -66,6 +109,8 @@ pub(all) enum WebViewEvent {
   HistoryChanged(Bool, Bool)
   ScriptResult(String, String)
   ScriptFailed(String, WebViewError)
+  ProtocolRequest(ProtocolRequest)
+  ProtocolCancelled(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum WebViewLifecycle {
@@ -84,8 +129,9 @@ pub(all) struct WebViewOptions {
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
+  on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
-pub fn WebViewOptions::new(bounds~ : Rect, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision) -> Self
+pub fn WebViewOptions::new(bounds~ : Rect, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision, on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision) -> Self
 
 // Type aliases
 

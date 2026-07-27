@@ -21,6 +21,52 @@ pub extern "C" fn install_navigation_callback(
 ) -> Unit = "moonview_macos_install_navigation_callback"
 
 ///|
+#borrow(call_closure)
+#owned(callback)
+pub extern "C" fn install_protocol_callback(
+  call_closure : FuncRef[
+    (
+      (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
+      UInt64,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+      Bytes,
+    ) -> Unit,
+  ],
+  callback : (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
+) -> Unit = "moonview_macos_install_protocol_callback"
+
+///|
+#borrow(call_closure)
+#owned(callback)
+pub extern "C" fn install_media_permission_callback(
+  call_closure : FuncRef[
+    ((UInt64, Int, Bytes) -> Int, UInt64, Int, Bytes) -> Int,
+  ],
+  callback : (UInt64, Int, Bytes) -> Int,
+) -> Unit = "moonview_macos_install_media_permission_callback"
+
+///|
+#borrow(name)
+pub extern "C" fn register_custom_scheme(name : Bytes) -> Int = "moonview_macos_register_custom_scheme"
+
+///|
+pub extern "C" fn lock_custom_schemes() -> Unit = "moonview_macos_lock_custom_schemes"
+
+///|
+#borrow(request_id, headers, body)
+pub extern "C" fn respond_protocol(
+  view : UInt64,
+  request_id : Bytes,
+  status : Int,
+  headers : Bytes,
+  body : Bytes,
+) -> Int = "moonview_macos_respond_protocol"
+
+///|
 /// Starts creation in a caller-owned `NSView*` container on the main thread.
 #borrow(initial_url, initial_html, initialization_script, user_agent)
 pub extern "C" fn create(

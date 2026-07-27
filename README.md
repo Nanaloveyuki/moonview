@@ -63,6 +63,32 @@ payloads are UTF-8 strings; applications own any JSON or RPC protocol layered
 on top of them. `WebView::eval` reports `ScriptResult` as JSON text on every
 backend; JavaScript `undefined` is reported as `null`.
 
+## Controlled Resources
+
+Register an application scheme before creating the first WebView, then answer
+each `ProtocolRequest` from `on_event`. Schemes use secure
+`scheme://authority/path` URLs. Requests carry method, headers, and binary
+body data; responses carry a status, headers, and binary body. A request not
+completed within 30 seconds is cancelled and reported as `ProtocolCancelled`.
+
+```moonbit
+ignore(@moonview.register_custom_scheme("app"))
+
+let options = @moonview.WebViewOptions::new(
+  bounds=@moonview.Rect::new(x=0, y=0, width=800, height=600),
+  initial_url="app://ui/index.html",
+  on_event=event => println("protocol event: \\{event}"),
+  on_media_permission=_request => @moonview.MediaPermissionDecision::Deny,
+)
+```
+
+Keep the created `WebView` in the same callback state that receives
+`ProtocolRequest`, then call `view.respond_protocol(request.id, response)`.
+
+The media-permission callback covers camera and microphone requests on all
+three backends and defaults to deny. Other browser permission categories are
+not part of the cross-platform API yet.
+
 ## Embedded Use
 
 ```moonbit

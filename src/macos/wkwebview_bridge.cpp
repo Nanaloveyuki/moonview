@@ -1,6 +1,7 @@
 #if defined(__APPLE__)
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <objc/message.h>
 #include <objc/runtime.h>
 
@@ -12,6 +13,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace {
 
@@ -25,17 +27,30 @@ enum EventKind : int32_t {
   kDocumentTitleChanged = 7,
   kHistoryChanged = 8,
   kScriptCompleted = 9,
+  kProtocolCancelled = 10,
 };
 
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t,
+                                    moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t);
+using MediaPermissionTrampoline = int32_t (*)(void *, uint64_t, int32_t,
+                                               moonbit_bytes_t);
 
 EventTrampoline g_event_trampoline = nullptr;
 void *g_event_closure = nullptr;
 NavigationTrampoline g_navigation_trampoline = nullptr;
 void *g_navigation_closure = nullptr;
+ProtocolTrampoline g_protocol_trampoline = nullptr;
+void *g_protocol_closure = nullptr;
+MediaPermissionTrampoline g_media_permission_trampoline = nullptr;
+void *g_media_permission_closure = nullptr;
 std::atomic<uint64_t> g_next_view_handle{1};
+std::vector<std::string> g_custom_schemes;
+bool g_custom_schemes_locked = false;
 
 template <typename Return, typename... Args>
 Return send(id receiver, SEL selector, Args... args) {
@@ -185,6 +200,13 @@ struct View {
   id content_manager = nil;
   id navigation_delegate = nil;
   id message_delegate = nil;
+  id ui_delegate = nil;
+  std::vector<id> scheme_handlers;
+  struct PendingProtocol {
+    id task = nil;
+    CFRunLoopTimerRef timeout = nullptr;
+  };
+  std::unordered_map<std::string, PendingProtocol> pending_protocols;
   std::string initial_url;
   std::string initial_html;
   bool started = false;
@@ -193,6 +215,8 @@ struct View {
 std::unordered_map<uint64_t, std::unique_ptr<View>> g_views;
 std::unordered_map<id, View *> g_navigation_views;
 std::unordered_map<id, View *> g_message_views;
+std::unordered_map<id, View *> g_ui_views;
+std::unordered_map<id, View *> g_webview_views;
 
 View *find_view(uint64_t handle) {
   const auto found = g_views.find(handle);
@@ -213,6 +237,100 @@ bool allow_navigation(View *view, const std::string &url) {
     return true;
   }
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(url)) != 0;
+}
+
+bool valid_custom_scheme(const std::string &scheme) {
+  if (scheme.empty() || !((scheme[0] >= 'a' && scheme[0] <= 'z') ||
+      (scheme[0] >= 'A' && scheme[0] <= 'Z'))) {
+    return false;
+  }
+  if (scheme == "http" || scheme == "https" || scheme == "file" ||
+      scheme == "data" || scheme == "javascript") {
+    return false;
+  }
+  for (const char character : scheme) {
+    if (!((character >= 'a' && character <= 'z') ||
+          (character >= 'A' && character <= 'Z') ||
+          (character >= '0' && character <= '9') || character == '+' ||
+          character == '-' || character == '.')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void append_u32(std::string *target, uint32_t value) {
+  target->push_back(static_cast<char>((value >> 24) & 0xFF));
+  target->push_back(static_cast<char>((value >> 16) & 0xFF));
+  target->push_back(static_cast<char>((value >> 8) & 0xFF));
+  target->push_back(static_cast<char>(value & 0xFF));
+}
+
+bool read_u32(const std::string &source, size_t *offset, uint32_t *value) {
+  if (*offset + 4 > source.size()) {
+    return false;
+  }
+  *value = (static_cast<uint32_t>(static_cast<unsigned char>(source[*offset])) << 24) |
+      (static_cast<uint32_t>(static_cast<unsigned char>(source[*offset + 1])) << 16) |
+      (static_cast<uint32_t>(static_cast<unsigned char>(source[*offset + 2])) << 8) |
+      static_cast<uint32_t>(static_cast<unsigned char>(source[*offset + 3]));
+  *offset += 4;
+  return true;
+}
+
+std::string encode_headers(id dictionary) {
+  std::vector<std::pair<std::string, std::string>> values;
+  if (dictionary != nil) {
+    id enumerator = send<id>(dictionary, selector("keyEnumerator"));
+    for (id key = send<id>(enumerator, selector("nextObject")); key != nil;
+         key = send<id>(enumerator, selector("nextObject"))) {
+      id value = send<id, id>(dictionary, selector("objectForKey:"), key);
+      values.emplace_back(utf8_string(key), utf8_string(value));
+    }
+  }
+  std::string encoded;
+  append_u32(&encoded, static_cast<uint32_t>(values.size()));
+  for (const auto &value : values) {
+    append_u32(&encoded, static_cast<uint32_t>(value.first.size()));
+    encoded += value.first;
+    append_u32(&encoded, static_cast<uint32_t>(value.second.size()));
+    encoded += value.second;
+  }
+  return encoded;
+}
+
+bool decode_headers(const std::string &encoded,
+                    std::vector<std::pair<std::string, std::string>> *headers) {
+  size_t offset = 0;
+  uint32_t count = 0;
+  if (!read_u32(encoded, &offset, &count) || count > 1024) {
+    return false;
+  }
+  for (uint32_t index = 0; index < count; ++index) {
+    uint32_t name_size = 0;
+    uint32_t value_size = 0;
+    if (!read_u32(encoded, &offset, &name_size) || offset + name_size > encoded.size()) {
+      return false;
+    }
+    std::string name = encoded.substr(offset, name_size);
+    offset += name_size;
+    if (!read_u32(encoded, &offset, &value_size) || offset + value_size > encoded.size()) {
+      return false;
+    }
+    std::string value = encoded.substr(offset, value_size);
+    offset += value_size;
+    headers->emplace_back(std::move(name), std::move(value));
+  }
+  return offset == encoded.size();
+}
+
+bool allow_media_permission(View *view, int32_t kind, const std::string &origin) {
+  if (view == nullptr || g_media_permission_trampoline == nullptr ||
+      g_media_permission_closure == nullptr) {
+    return false;
+  }
+  return g_media_permission_trampoline(g_media_permission_closure, view->handle,
+                                       kind, make_bytes(origin)) != 0;
 }
 
 std::string webview_url(id webview) {
@@ -272,6 +390,20 @@ void call_decision_handler(id handler, bool allowed) {
   DecisionHandlerBlock *block = reinterpret_cast<DecisionHandlerBlock *>(handler);
   if (block != nullptr && block->invoke != nullptr) {
     block->invoke(block, allowed ? 1L : 0L);
+  }
+}
+
+void media_permission_decide(id delegate, SEL, id, id origin, id, long capture_type,
+                             id decision_handler) {
+  const auto found = g_ui_views.find(delegate);
+  const int32_t kind = capture_type >= 0 && capture_type <= 2
+      ? static_cast<int32_t>(capture_type + 1) : 0;
+  id description = origin == nil ? nil : send<id>(origin, selector("description"));
+  const bool allowed = found != g_ui_views.end() && kind != 0 &&
+      allow_media_permission(found->second, kind, utf8_string(description));
+  DecisionHandlerBlock *block = reinterpret_cast<DecisionHandlerBlock *>(decision_handler);
+  if (block != nullptr && block->invoke != nullptr) {
+    block->invoke(block, allowed ? 1L : 2L);
   }
 }
 
@@ -373,6 +505,114 @@ Class message_delegate_class() {
   return delegate;
 }
 
+Class ui_delegate_class() {
+  static Class delegate = nullptr;
+  if (delegate != nullptr) {
+    return delegate;
+  }
+  delegate = objc_allocateClassPair(reinterpret_cast<Class>(class_object("NSObject")),
+                                    "MoonviewUIDelegate", 0);
+  class_addMethod(delegate,
+      selector("webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:"),
+      reinterpret_cast<IMP>(media_permission_decide), "v@:@@@q@");
+  objc_registerClassPair(delegate);
+  return delegate;
+}
+
+std::atomic<uint64_t> g_next_protocol_request{1};
+
+bool finish_protocol(View *view, const std::string &request_id, int32_t status,
+                     const std::string &headers, const std::string &body);
+
+struct ProtocolTimeout {
+  uint64_t handle = 0;
+  std::string request_id;
+};
+
+void release_protocol_timeout(const void *info) {
+  delete static_cast<const ProtocolTimeout *>(info);
+}
+
+void protocol_timeout(CFRunLoopTimerRef, void *info) {
+  const auto *timeout = static_cast<const ProtocolTimeout *>(info);
+  View *view = find_view(timeout->handle);
+  if (view != nullptr &&
+      view->pending_protocols.find(timeout->request_id) != view->pending_protocols.end()) {
+    emit_event(view, kProtocolCancelled, timeout->request_id);
+    finish_protocol(view, timeout->request_id, 504, std::string(4, '\0'), "");
+  }
+}
+
+void scheme_task_started(id, SEL, id webview, id task) {
+  const auto found = g_webview_views.find(webview);
+  if (found == g_webview_views.end() || g_protocol_trampoline == nullptr ||
+      g_protocol_closure == nullptr) {
+    return;
+  }
+  View *view = found->second;
+  id request = send<id>(task, selector("request"));
+  id url = request == nil ? nil : send<id>(request, selector("URL"));
+  id scheme = url == nil ? nil : send<id>(url, selector("scheme"));
+  id absolute = url == nil ? nil : send<id>(url, selector("absoluteString"));
+  id method = request == nil ? nil : send<id>(request, selector("HTTPMethod"));
+  id headers = request == nil ? nil : send<id>(request, selector("allHTTPHeaderFields"));
+  id data = request == nil ? nil : send<id>(request, selector("HTTPBody"));
+  const char *body_data = data == nil ? nullptr :
+      reinterpret_cast<const char *>(send<const void *>(data, selector("bytes")));
+  const unsigned long body_size = data == nil ? 0UL :
+      send<unsigned long>(data, selector("length"));
+  const std::string request_id = std::to_string(g_next_protocol_request.fetch_add(1));
+  View::PendingProtocol pending;
+  pending.task = task;
+  auto *timeout = new ProtocolTimeout{view->handle, request_id};
+  CFRunLoopTimerContext context{};
+  context.info = timeout;
+  context.release = release_protocol_timeout;
+  pending.timeout = CFRunLoopTimerCreate(kCFAllocatorDefault,
+      CFAbsoluteTimeGetCurrent() + 30.0, 0.0, 0, 0, protocol_timeout, &context);
+  CFRunLoopAddTimer(CFRunLoopGetMain(), pending.timeout, kCFRunLoopCommonModes);
+  view->pending_protocols.emplace(request_id, pending);
+  g_protocol_trampoline(g_protocol_closure, view->handle, make_bytes(request_id),
+      make_bytes(utf8_string(scheme)), make_bytes(utf8_string(method)),
+      make_bytes(utf8_string(absolute)), make_bytes(encode_headers(headers)),
+      make_bytes(body_data == nullptr ? "" : std::string(body_data, body_size)));
+}
+
+void scheme_task_stopped(id, SEL, id webview, id task) {
+  const auto found = g_webview_views.find(webview);
+  if (found == g_webview_views.end()) {
+    return;
+  }
+  View *view = found->second;
+  for (auto pending = view->pending_protocols.begin();
+       pending != view->pending_protocols.end(); ++pending) {
+    if (pending->second.task == task) {
+      if (pending->second.timeout != nullptr) {
+        CFRunLoopTimerInvalidate(pending->second.timeout);
+        CFRelease(pending->second.timeout);
+      }
+      emit_event(view, kProtocolCancelled, pending->first);
+      view->pending_protocols.erase(pending);
+      return;
+    }
+  }
+}
+
+Class scheme_handler_class() {
+  static Class handler = nullptr;
+  if (handler != nullptr) {
+    return handler;
+  }
+  handler = objc_allocateClassPair(reinterpret_cast<Class>(class_object("NSObject")),
+                                   "MoonviewURLSchemeHandler", 0);
+  class_addMethod(handler, selector("webView:startURLSchemeTask:"),
+                  reinterpret_cast<IMP>(scheme_task_started), "v@:@@");
+  class_addMethod(handler, selector("webView:stopURLSchemeTask:"),
+                  reinterpret_cast<IMP>(scheme_task_stopped), "v@:@@");
+  objc_registerClassPair(handler);
+  return handler;
+}
+
 void load_initial_content(View *view) {
   if (!view->initial_html.empty()) {
     id html = string_object(view->initial_html);
@@ -415,6 +655,107 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(
   g_navigation_closure = closure;
 }
 
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_protocol_callback(
+    ProtocolTrampoline trampoline, void *closure) {
+  if (g_protocol_closure != nullptr) {
+    moonbit_decref(g_protocol_closure);
+  }
+  g_protocol_trampoline = trampoline;
+  g_protocol_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_media_permission_callback(
+    MediaPermissionTrampoline trampoline, void *closure) {
+  if (g_media_permission_closure != nullptr) {
+    moonbit_decref(g_media_permission_closure);
+  }
+  g_media_permission_trampoline = trampoline;
+  g_media_permission_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_register_custom_scheme(
+    moonbit_bytes_t name) {
+  if (g_custom_schemes_locked) {
+    return -1;
+  }
+  const std::string scheme = bytes_to_utf8(name);
+  if (!valid_custom_scheme(scheme)) {
+    return 0;
+  }
+  for (const std::string &registered : g_custom_schemes) {
+    if (registered == scheme) {
+      return 1;
+    }
+  }
+  g_custom_schemes.push_back(scheme);
+  return 1;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_lock_custom_schemes() {
+  g_custom_schemes_locked = true;
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(
+    uint64_t handle, moonbit_bytes_t request_id, int32_t status,
+    moonbit_bytes_t headers, moonbit_bytes_t body) {
+  return finish_protocol(find_view(handle), bytes_to_utf8(request_id), status,
+                         bytes_to_utf8(headers), bytes_to_utf8(body)) ? 1 : 0;
+}
+
+bool finish_protocol(View *view, const std::string &id_text, int32_t status,
+                     const std::string &encoded_headers, const std::string &payload) {
+  if (view == nullptr || status < 100 || status > 599) {
+    return false;
+  }
+  const auto found = view->pending_protocols.find(id_text);
+  if (found == view->pending_protocols.end()) {
+    return false;
+  }
+  std::vector<std::pair<std::string, std::string>> decoded_headers;
+  if (!decode_headers(encoded_headers, &decoded_headers)) {
+    return false;
+  }
+  View::PendingProtocol pending = found->second;
+  view->pending_protocols.erase(found);
+  if (pending.timeout != nullptr) {
+    CFRunLoopTimerInvalidate(pending.timeout);
+    CFRelease(pending.timeout);
+  }
+  id task = pending.task;
+  id request = send<id>(task, selector("request"));
+  id url = request == nil ? nil : send<id>(request, selector("URL"));
+  if (url == nil) {
+    return false;
+  }
+  id fields = send<id>(class_object("NSMutableDictionary"), selector("dictionary"));
+  for (const auto &header : decoded_headers) {
+    id name = string_object(header.first);
+    id value = string_object(header.second);
+    send<void, id, id>(fields, selector("setObject:forKey:"), value, name);
+    release_object(value);
+    release_object(name);
+  }
+  id version = string_object("HTTP/1.1");
+  id response = send<id>(class_object("NSHTTPURLResponse"), selector("alloc"));
+  response = send<id, id, long, id, id>(response,
+      selector("initWithURL:statusCode:HTTPVersion:headerFields:"), url,
+      static_cast<long>(status), version, fields);
+  release_object(version);
+  if (response == nil) {
+    return false;
+  }
+  send<void, id>(task, selector("didReceiveResponse:"), response);
+  if (!payload.empty()) {
+    id data = send<id, const void *, unsigned long>(class_object("NSData"),
+        selector("dataWithBytes:length:"), payload.data(),
+        static_cast<unsigned long>(payload.size()));
+    send<void, id>(task, selector("didReceiveData:"), data);
+  }
+  send<void>(task, selector("didFinish"));
+  release_object(response);
+  return true;
+}
+
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() {
   return class_object("WKWebView") != nil ? 1 : 0;
 }
@@ -439,8 +780,10 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
                                        selector("new"));
   view->message_delegate = send<id>(reinterpret_cast<id>(message_delegate_class()),
                                     selector("new"));
+  view->ui_delegate = send<id>(reinterpret_cast<id>(ui_delegate_class()), selector("new"));
   g_navigation_views.emplace(view->navigation_delegate, view.get());
   g_message_views.emplace(view->message_delegate, view.get());
+  g_ui_views.emplace(view->ui_delegate, view.get());
   id channel = string_object("moonview");
   send<void, id, id>(view->content_manager, selector("addScriptMessageHandler:name:"),
                      view->message_delegate, channel);
@@ -448,6 +791,14 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
   id configuration = send<id>(class_object("WKWebViewConfiguration"), selector("alloc"));
   configuration = send<id>(configuration, selector("init"));
   send<void, id>(configuration, selector("setUserContentController:"), view->content_manager);
+  for (const std::string &scheme : g_custom_schemes) {
+    id handler = send<id>(reinterpret_cast<id>(scheme_handler_class()), selector("new"));
+    id name = string_object(scheme);
+    send<void, id, id>(configuration, selector("setURLSchemeHandler:forURLScheme:"),
+                       handler, name);
+    release_object(name);
+    view->scheme_handlers.push_back(handler);
+  }
   view->webview = send<id>(class_object("WKWebView"), selector("alloc"));
   const CGRect frame = CGRectZero;
   view->webview = send<id, CGRect, id>(view->webview,
@@ -456,8 +807,10 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
   if (view->webview == nil) {
     g_navigation_views.erase(view->navigation_delegate);
     g_message_views.erase(view->message_delegate);
+    g_ui_views.erase(view->ui_delegate);
     release_object(view->navigation_delegate);
     release_object(view->message_delegate);
+    release_object(view->ui_delegate);
     release_object(view->content_manager);
     return 0;
   }
@@ -468,6 +821,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     release_object(agent);
   }
   send<void, id>(view->webview, selector("setNavigationDelegate:"), view->navigation_delegate);
+  send<void, id>(view->webview, selector("setUIDelegate:"), view->ui_delegate);
   add_document_script(view.get(), bridge_script());
   add_document_script(view.get(), bytes_to_utf8(initialization_script));
   view->initial_url = bytes_to_utf8(initial_url);
@@ -475,6 +829,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
   set_frame(view.get(), x, y, width, height);
   send<void, id>(parent, selector("addSubview:"), view->webview);
   const uint64_t handle = view->handle;
+  g_webview_views.emplace(view->webview, view.get());
   g_views.emplace(handle, std::move(view));
   return handle;
 }
@@ -498,17 +853,32 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t handle) {
     return 0;
   }
   View *view = found->second.get();
+  for (const auto &pending : view->pending_protocols) {
+    if (pending.second.timeout != nullptr) {
+      CFRunLoopTimerInvalidate(pending.second.timeout);
+      CFRelease(pending.second.timeout);
+    }
+    emit_event(view, kProtocolCancelled, pending.first);
+  }
+  view->pending_protocols.clear();
   send<void, id>(view->webview, selector("setNavigationDelegate:"), nil);
+  send<void, id>(view->webview, selector("setUIDelegate:"), nil);
   id channel = string_object("moonview");
   send<void, id>(view->content_manager, selector("removeScriptMessageHandlerForName:"), channel);
   release_object(channel);
   send<void>(view->webview, selector("removeFromSuperview"));
   g_navigation_views.erase(view->navigation_delegate);
   g_message_views.erase(view->message_delegate);
+  g_ui_views.erase(view->ui_delegate);
+  g_webview_views.erase(view->webview);
   release_object(view->webview);
   release_object(view->content_manager);
   release_object(view->navigation_delegate);
   release_object(view->message_delegate);
+  release_object(view->ui_delegate);
+  for (id handler : view->scheme_handlers) {
+    release_object(handler);
+  }
   g_views.erase(found);
   return 1;
 }
@@ -671,10 +1041,19 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_post_message(uint64_t handle,
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t);
+using MediaPermissionTrampoline = int32_t (*)(void *, uint64_t, int32_t, moonbit_bytes_t);
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_event_callback(EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_protocol_callback(ProtocolTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_media_permission_callback(MediaPermissionTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_register_custom_scheme(moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_lock_custom_schemes() {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t) { return 0; }
