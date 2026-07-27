@@ -41,6 +41,11 @@ pub(all) enum NavigationDecision {
   Deny
 } derive(Eq, @debug.Debug)
 
+pub(all) struct OhosAttachOptions {
+  on_event : (WebViewEvent) -> Unit
+}
+pub fn OhosAttachOptions::new(on_event? : (WebViewEvent) -> Unit) -> Self
+
 pub(all) struct ProtocolRequest {
   id : String
   scheme : String
@@ -69,6 +74,7 @@ pub struct WebView {
   // private fields
 }
 pub fn WebView::add_init_script(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::attach_ohos(String, OhosAttachOptions) -> Result[Self, WebViewError]
 pub fn WebView::create(UInt64, WebViewOptions) -> Result[Self, WebViewError]
 pub fn WebView::destroy(Self) -> Result[Unit, WebViewError]
 pub fn WebView::eval(Self, String, String) -> Result[Unit, WebViewError]

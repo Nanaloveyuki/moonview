@@ -4,6 +4,7 @@ priv enum NativeBackend {
   Windows
   MacOS
   Linux
+  Ohos
   Unsupported
 } derive(Eq)
 
@@ -15,6 +16,8 @@ fn active_backend() -> NativeBackend {
     NativeBackend::MacOS
   } else if @linux.available() != 0 {
     NativeBackend::Linux
+  } else if @ohos.available() != 0 {
+    NativeBackend::Ohos
   } else {
     NativeBackend::Unsupported
   }
@@ -23,6 +26,11 @@ fn active_backend() -> NativeBackend {
 ///|
 fn native_available() -> Bool {
   active_backend() != NativeBackend::Unsupported
+}
+
+///|
+fn native_is_ohos() -> Bool {
+  active_backend() == NativeBackend::Ohos
 }
 
 ///|
@@ -126,6 +134,37 @@ fn install_native_callbacks(
         media_permission_callback,
       )
     }
+    NativeBackend::Ohos => {
+      @ohos.install_event_callback(
+        fn(callback, handle, kind, value, detail, code) {
+          callback(handle, kind, value, detail, code)
+        },
+        event_callback,
+      )
+      @ohos.install_navigation_callback(
+        fn(callback, handle, url) { callback(handle, url) },
+        navigation_callback,
+      )
+      @ohos.install_protocol_callback(
+        fn(
+          callback,
+          handle,
+          request_id,
+          scheme,
+          http_method,
+          uri,
+          headers,
+          body,
+        ) {
+          callback(handle, request_id, scheme, http_method, uri, headers, body)
+        },
+        protocol_callback,
+      )
+      @ohos.install_media_permission_callback(
+        fn(callback, handle, kind, origin) { callback(handle, kind, origin) },
+        media_permission_callback,
+      )
+    }
     NativeBackend::Unsupported => ()
   }
 }
@@ -136,6 +175,7 @@ fn native_register_custom_scheme(name : Bytes) -> Int {
     NativeBackend::Windows => @windows.register_custom_scheme(name)
     NativeBackend::MacOS => @macos.register_custom_scheme(name)
     NativeBackend::Linux => @linux.register_custom_scheme(name)
+    NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0
   }
 }
@@ -146,6 +186,7 @@ fn native_lock_custom_schemes() -> Unit {
     NativeBackend::Windows => @windows.lock_custom_schemes()
     NativeBackend::MacOS => @macos.lock_custom_schemes()
     NativeBackend::Linux => @linux.lock_custom_schemes()
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -165,6 +206,7 @@ fn native_respond_protocol(
       @macos.respond_protocol(handle, request_id, status, headers, body)
     NativeBackend::Linux =>
       @linux.respond_protocol(handle, request_id, status, headers, body)
+    NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0
   }
 }
@@ -197,6 +239,7 @@ fn native_create(
         parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
         user_agent,
       )
+    NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0
   }
 }
@@ -207,6 +250,7 @@ fn native_start(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.start(handle)
     NativeBackend::MacOS => @macos.start(handle)
     NativeBackend::Linux => @linux.start(handle)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -217,6 +261,7 @@ fn native_destroy(handle : UInt64) -> Int {
     NativeBackend::Windows => @windows.destroy(handle)
     NativeBackend::MacOS => @macos.destroy(handle)
     NativeBackend::Linux => @linux.destroy(handle)
+    NativeBackend::Ohos => @ohos.destroy(handle)
     NativeBackend::Unsupported => 0
   }
 }
@@ -233,6 +278,7 @@ fn native_set_bounds(
     NativeBackend::Windows => @windows.set_bounds(handle, x, y, width, height)
     NativeBackend::MacOS => @macos.set_bounds(handle, x, y, width, height)
     NativeBackend::Linux => @linux.set_bounds(handle, x, y, width, height)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -244,6 +290,7 @@ fn native_set_visible(handle : UInt64, visible : Bool) -> Unit {
     NativeBackend::Windows => @windows.set_visible(handle, visible)
     NativeBackend::MacOS => @macos.set_visible(handle, visible)
     NativeBackend::Linux => @linux.set_visible(handle, visible)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -254,6 +301,7 @@ fn native_focus(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.focus(handle)
     NativeBackend::MacOS => @macos.focus(handle)
     NativeBackend::Linux => @linux.focus(handle)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -264,6 +312,7 @@ fn native_navigate(handle : UInt64, url : Bytes) -> Unit {
     NativeBackend::Windows => @windows.navigate(handle, url)
     NativeBackend::MacOS => @macos.navigate(handle, url)
     NativeBackend::Linux => @linux.navigate(handle, url)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -274,6 +323,7 @@ fn native_load_html(handle : UInt64, html : Bytes) -> Unit {
     NativeBackend::Windows => @windows.load_html(handle, html)
     NativeBackend::MacOS => @macos.load_html(handle, html)
     NativeBackend::Linux => @linux.load_html(handle, html)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -284,6 +334,7 @@ fn native_reload(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.reload(handle)
     NativeBackend::MacOS => @macos.reload(handle)
     NativeBackend::Linux => @linux.reload(handle)
+    NativeBackend::Ohos => @ohos.reload(handle)
     NativeBackend::Unsupported => ()
   }
 }
@@ -294,6 +345,7 @@ fn native_stop(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.stop(handle)
     NativeBackend::MacOS => @macos.stop(handle)
     NativeBackend::Linux => @linux.stop(handle)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -304,6 +356,7 @@ fn native_go_back(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.go_back(handle)
     NativeBackend::MacOS => @macos.go_back(handle)
     NativeBackend::Linux => @linux.go_back(handle)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -314,6 +367,7 @@ fn native_go_forward(handle : UInt64) -> Unit {
     NativeBackend::Windows => @windows.go_forward(handle)
     NativeBackend::MacOS => @macos.go_forward(handle)
     NativeBackend::Linux => @linux.go_forward(handle)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -324,6 +378,7 @@ fn native_add_init_script(handle : UInt64, script : Bytes) -> Unit {
     NativeBackend::Windows => @windows.add_init_script(handle, script)
     NativeBackend::MacOS => @macos.add_init_script(handle, script)
     NativeBackend::Linux => @linux.add_init_script(handle, script)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -334,6 +389,7 @@ fn native_set_zoom(handle : UInt64, factor : Double) -> Unit {
     NativeBackend::Windows => @windows.set_zoom(handle, factor)
     NativeBackend::MacOS => @macos.set_zoom(handle, factor)
     NativeBackend::Linux => @linux.set_zoom(handle, factor)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
   }
 }
@@ -344,6 +400,7 @@ fn native_open_devtools(handle : UInt64) -> Int {
     NativeBackend::Windows => @windows.open_devtools(handle)
     NativeBackend::MacOS => @macos.open_devtools(handle)
     NativeBackend::Linux => @linux.open_devtools(handle)
+    NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0
   }
 }
@@ -354,6 +411,7 @@ fn native_open_print_dialog(handle : UInt64) -> Int {
     NativeBackend::Windows => @windows.open_print_dialog(handle)
     NativeBackend::MacOS => @macos.open_print_dialog(handle)
     NativeBackend::Linux => @linux.open_print_dialog(handle)
+    NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0
   }
 }
@@ -364,6 +422,7 @@ fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Unit {
     NativeBackend::Windows => @windows.eval(handle, script, request_id)
     NativeBackend::MacOS => @macos.eval(handle, script, request_id)
     NativeBackend::Linux => @linux.eval(handle, script, request_id)
+    NativeBackend::Ohos => @ohos.eval(handle, script)
     NativeBackend::Unsupported => ()
   }
 }
@@ -374,6 +433,23 @@ fn native_post_message(handle : UInt64, message : Bytes) -> Unit {
     NativeBackend::Windows => @windows.post_message(handle, message)
     NativeBackend::MacOS => @macos.post_message(handle, message)
     NativeBackend::Linux => @linux.post_message(handle, message)
+    NativeBackend::Ohos => ()
     NativeBackend::Unsupported => ()
+  }
+}
+
+///|
+fn native_attach_ohos(web_tag : Bytes) -> UInt64 {
+  match active_backend() {
+    NativeBackend::Ohos => @ohos.attach(web_tag)
+    _ => 0
+  }
+}
+
+///|
+fn native_start_ohos(handle : UInt64) -> Unit {
+  match active_backend() {
+    NativeBackend::Ohos => @ohos.start(handle)
+    _ => ()
   }
 }

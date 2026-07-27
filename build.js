@@ -71,6 +71,65 @@ function webKitGtkConfig() {
   }
 }
 
+function findArtifact(root, filename) {
+  if (!root || !fs.existsSync(root)) {
+    return "";
+  }
+  const pending = [root];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    let entries;
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch (_) {
+      continue;
+    }
+    for (const entry of entries) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isFile() && entry.name === filename) {
+        return candidate;
+      }
+      if (entry.isDirectory() && pending.length < 4096) {
+        pending.push(candidate);
+      }
+    }
+  }
+  return "";
+}
+
+function ohosArkWebConfig(config) {
+  const sdkRoot = configEnv(config, "MOONVIEW_OHOS_ARKWEB_SDK_DIR") ||
+    configEnv(config, "MOONVIEW_OHOS_NDK_HOME");
+  const discoveredHeader = findArtifact(sdkRoot, "arkweb_interface.h");
+  const includeDir = configEnv(config, "MOONVIEW_OHOS_ARKWEB_INCLUDE") ||
+    (discoveredHeader ? path.dirname(discoveredHeader) : "");
+  const library = configEnv(config, "MOONVIEW_OHOS_ARKWEB_LIB") ||
+    findArtifact(sdkRoot, "libohweb.so");
+  const header = includeDir ? path.join(includeDir, "arkweb_interface.h") : "";
+
+  if (!header || !fs.existsSync(header) || !library || !fs.existsSync(library)) {
+    throw new Error(
+      "moonview requires the OpenHarmony ArkWeb NDK. Set MOONVIEW_OHOS_ARKWEB_SDK_DIR " +
+      "(or MOONVIEW_OHOS_NDK_HOME), or set both MOONVIEW_OHOS_ARKWEB_INCLUDE and " +
+      "MOONVIEW_OHOS_ARKWEB_LIB. The SDK is never vendored by moonview.",
+    );
+  }
+
+  return {
+    stubFlags: "-I" + quote(includeDir),
+    linkFlags: quote(library),
+  };
+}
+
+function hasOhosArkWebConfig(config) {
+  return Boolean(
+    configEnv(config, "MOONVIEW_OHOS_ARKWEB_SDK_DIR") ||
+    configEnv(config, "MOONVIEW_OHOS_NDK_HOME") ||
+    configEnv(config, "MOONVIEW_OHOS_ARKWEB_INCLUDE") ||
+    configEnv(config, "MOONVIEW_OHOS_ARKWEB_LIB"),
+  );
+}
+
 function main() {
   const config = readConfig();
   const vars = {
@@ -80,11 +139,21 @@ function main() {
     MOONVIEW_WEBKITGTK_CC_LINK_FLAGS: "",
     MOONVIEW_WKWEBVIEW_STUB_CC_FLAGS: "",
     MOONVIEW_WKWEBVIEW_CC_LINK_FLAGS: "",
+    MOONVIEW_OHOS_ARKWEB_STUB_CC_FLAGS: "",
+    MOONVIEW_OHOS_ARKWEB_CC_LINK_FLAGS: "",
     MOONVIEW_WINDOWS_SMOKE_CC_LINK_FLAGS: "",
   };
   const linkConfigs = [];
 
-  if (process.platform === "win32") {
+  if (hasOhosArkWebConfig(config)) {
+    const native = ohosArkWebConfig(config);
+    vars.MOONVIEW_OHOS_ARKWEB_STUB_CC_FLAGS = native.stubFlags;
+    vars.MOONVIEW_OHOS_ARKWEB_CC_LINK_FLAGS = native.linkFlags;
+    linkConfigs.push({
+      package: "Nanaloveyuki/moonview/ohos",
+      link_flags: native.linkFlags,
+    });
+  } else if (process.platform === "win32") {
     const native = webView2Config(config);
     vars.MOONVIEW_WEBVIEW2_STUB_CC_FLAGS = native.stubFlags;
     vars.MOONVIEW_WEBVIEW2_CC_LINK_FLAGS = native.linkFlags;

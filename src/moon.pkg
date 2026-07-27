@@ -2,6 +2,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "Nanaloveyuki/moonview/linux",
   "Nanaloveyuki/moonview/macos",
+  "Nanaloveyuki/moonview/ohos",
   "Nanaloveyuki/moonview/windows",
 }
 

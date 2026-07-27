@@ -83,6 +83,16 @@ test "lifecycle moves from creation to ready or failed" {
 }
 
 ///|
+test "OpenHarmony attachment uses the common ready lifecycle" {
+  let handle : UInt64 = 9004
+  register_ohos_view(handle, OhosAttachOptions::new())
+  assert_eq(lifecycle_of(handle), WebViewLifecycle::Creating)
+  dispatch_native_event(handle, 1, encode_utf8(""), encode_utf8(""), 0)
+  assert_eq(lifecycle_of(handle), WebViewLifecycle::Ready)
+  unregister_view(handle)
+}
+
+///|
 test "custom protocol headers use a length-prefixed UTF-8 envelope" {
   let headers = [
     HttpHeader::new(name="Content-Type", value="text/plain; charset=utf-8"),

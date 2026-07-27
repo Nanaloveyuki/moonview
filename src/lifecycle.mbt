@@ -38,6 +38,16 @@ fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
 }
 
 ///|
+fn register_ohos_view(handle : UInt64, options : OhosAttachOptions) -> Unit {
+  registrations.set(handle, {
+    lifecycle: WebViewLifecycle::Creating,
+    on_event: options.on_event,
+    on_navigation: allow_navigation,
+    on_media_permission: deny_media_permission,
+  })
+}
+
+///|
 fn unregister_view(handle : UInt64) -> Unit {
   ignore(registrations.remove(handle))
 }

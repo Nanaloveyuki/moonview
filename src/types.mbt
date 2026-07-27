@@ -124,6 +124,23 @@ pub(all) struct WebViewOptions {
 }
 
 ///|
+/// Configuration for attaching to an ArkUI-owned OpenHarmony `Web` component.
+///
+/// The ArkUI host owns the component's source, layout, visibility, and browser
+/// permissions. This API is separate from `WebViewOptions` so unsupported
+/// creation settings cannot be silently ignored.
+pub(all) struct OhosAttachOptions {
+  on_event : (WebViewEvent) -> Unit
+}
+
+///|
+pub fn OhosAttachOptions::new(
+  on_event? : (WebViewEvent) -> Unit = ignore_event,
+) -> OhosAttachOptions {
+  { on_event, }
+}
+
+///|
 pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
   { x, y, width, height }
 }

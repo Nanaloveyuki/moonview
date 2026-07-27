@@ -1,0 +1,12 @@
+supported_targets = "native"
+
+options(
+  link: {
+    "native": {
+      "stub-cc-flags": "${build.MOONVIEW_OHOS_ARKWEB_STUB_CC_FLAGS}",
+      "cc-link-flags": "${build.MOONVIEW_OHOS_ARKWEB_CC_LINK_FLAGS}",
+    },
+  },
+  "native-stub": [ "arkweb_bridge.cpp" ],
+  targets: { },
+)

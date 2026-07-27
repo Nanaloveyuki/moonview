@@ -1,4 +1,4 @@
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__OHOS__)
 
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>

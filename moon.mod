@@ -17,6 +17,8 @@ keywords = [
   "windows",
   "macos",
   "linux",
+  "openharmony",
+  "arkweb",
   "desktop",
 ]
 
