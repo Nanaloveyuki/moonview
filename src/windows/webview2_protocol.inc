@@ -21,6 +21,7 @@ bool g_custom_schemes_locked = false;
 struct PendingProtocolRequest {
   uint64_t view_handle = 0;
   DWORD thread_id = 0;
+  uint64_t context_id = 0;
   UINT_PTR timer_id = 0;
   ComPtr<ICoreWebView2WebResourceRequestedEventArgs> args;
   ComPtr<ICoreWebView2Deferral> deferral;
@@ -259,7 +260,8 @@ bool complete_protocol_response(const std::string &request_id, int32_t status,
   if (!decode_response_headers(headers, &response_headers)) {
     return false;
   }
-  const auto environment_it = g_environments.find(pending->thread_id);
+  const auto environment_it = g_environments.find(
+      EnvironmentKey{pending->thread_id, pending->context_id});
   if (environment_it == g_environments.end() || !environment_it->second.environment) {
     return false;
   }
@@ -376,6 +378,7 @@ void install_protocol_handlers(const std::shared_ptr<View> &view, EventRegistrat
             auto pending = std::make_shared<PendingProtocolRequest>();
             pending->view_handle = locked->handle;
             pending->thread_id = locked->thread_id;
+            pending->context_id = locked->context_id;
             pending->args = args;
             pending->deferral = deferral;
             const UINT_PTR requested_timer = g_next_protocol_timer.fetch_add(1);
@@ -426,7 +429,7 @@ bool configure_protocol_environment_options(ThreadEnvironment &state) {
   ComPtr<ICoreWebView2EnvironmentOptions4> options4;
   if (!options || FAILED(options.As(&options4)) || !options4) {
     state.failure = E_OUTOFMEMORY;
-    fail_waiting_views(state.thread_id, state.failure, "WebView2 environment options creation");
+    fail_waiting_views(state.key, state.failure, "WebView2 environment options creation");
     return false;
   }
   std::vector<ComPtr<ICoreWebView2CustomSchemeRegistration>> registrations;
@@ -437,13 +440,13 @@ bool configure_protocol_environment_options(ThreadEnvironment &state) {
     if (!registration || FAILED(registration->put_TreatAsSecure(TRUE)) ||
         FAILED(registration->put_HasAuthorityComponent(TRUE))) {
       state.failure = E_OUTOFMEMORY;
-      fail_waiting_views(state.thread_id, state.failure, "WebView2 custom-scheme registration");
+      fail_waiting_views(state.key, state.failure, "WebView2 custom-scheme registration");
       return false;
     }
     ComPtr<ICoreWebView2CustomSchemeRegistration> interface_registration;
     if (FAILED(registration.As(&interface_registration))) {
       state.failure = E_NOINTERFACE;
-      fail_waiting_views(state.thread_id, state.failure, "WebView2 custom-scheme registration");
+      fail_waiting_views(state.key, state.failure, "WebView2 custom-scheme registration");
       return false;
     }
     registration_ptrs.push_back(interface_registration.Get());
@@ -453,7 +456,7 @@ bool configure_protocol_environment_options(ThreadEnvironment &state) {
       FAILED(options4->SetCustomSchemeRegistrations(
           static_cast<UINT32>(registration_ptrs.size()), registration_ptrs.data()))) {
     state.failure = E_FAIL;
-    fail_waiting_views(state.thread_id, state.failure, "WebView2 custom-scheme registration");
+    fail_waiting_views(state.key, state.failure, "WebView2 custom-scheme registration");
     return false;
   }
   state.options = options;
