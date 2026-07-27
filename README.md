@@ -87,6 +87,8 @@ configured in `WebViewOptions` is installed before the first document loads;
 `set_zoom_factor` accepts positive page zoom values.
 `open_devtools` is supported by WebView2 and WebKitGTK; WKWebView has no
 supported public API to open its inspector, so macOS returns `Unsupported`.
+The embedded API does not create host windows: popup and `window.open` requests
+are denied by default on every backend.
 
 ## Validation
 

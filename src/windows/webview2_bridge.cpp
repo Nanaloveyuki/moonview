@@ -307,6 +307,16 @@ void install_handlers(const std::shared_ptr<View> &view) {
           })
           .Get(),
       &token);
+  view->webview->add_NewWindowRequested(
+      Callback<ICoreWebView2NewWindowRequestedEventHandler>(
+          [](ICoreWebView2 *, ICoreWebView2NewWindowRequestedEventArgs *args) -> HRESULT {
+            if (args != nullptr) {
+              args->put_Handled(TRUE);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &token);
   view->webview->add_NavigationStarting(
       Callback<ICoreWebView2NavigationStartingEventHandler>(
           [weak_view](ICoreWebView2 *, ICoreWebView2NavigationStartingEventArgs *args) -> HRESULT {
