@@ -3,6 +3,7 @@
 /// command queuing before Ready; this registry only routes callbacks.
 priv struct Registration {
   lifecycle : WebViewLifecycle
+  navigation_state : NavigationState
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
@@ -31,6 +32,7 @@ fn ensure_native_callbacks() -> Unit {
 fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
   registrations.set(handle, {
     lifecycle: WebViewLifecycle::Creating,
+    navigation_state: NavigationState::new(),
     on_event: options.on_event,
     on_navigation: options.on_navigation,
     on_media_permission: options.on_media_permission,
@@ -41,6 +43,7 @@ fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
 fn register_ohos_view(handle : UInt64, options : OhosAttachOptions) -> Unit {
   registrations.set(handle, {
     lifecycle: WebViewLifecycle::Creating,
+    navigation_state: NavigationState::new(),
     on_event: options.on_event,
     on_navigation: allow_navigation,
     on_media_permission: deny_media_permission,
@@ -61,11 +64,20 @@ fn lifecycle_of(handle : UInt64) -> WebViewLifecycle {
 }
 
 ///|
+fn navigation_state_of(handle : UInt64) -> NavigationState {
+  match registrations.get(handle) {
+    Some(registration) => registration.navigation_state
+    None => NavigationState::new()
+  }
+}
+
+///|
 fn update_lifecycle(handle : UInt64, lifecycle : WebViewLifecycle) -> Unit {
   match registrations.get(handle) {
     Some(registration) =>
       registrations.set(handle, {
         lifecycle,
+        navigation_state: registration.navigation_state,
         on_event: registration.on_event,
         on_navigation: registration.on_navigation,
         on_media_permission: registration.on_media_permission,
@@ -91,7 +103,39 @@ fn dispatch_native_event(
           update_lifecycle(handle, WebViewLifecycle::Failed(error))
         _ => ()
       }
+      update_navigation_state(handle, event)
       (registration.on_event)(event)
+    }
+    None => ()
+  }
+}
+
+///|
+fn update_navigation_state(handle : UInt64, event : WebViewEvent) -> Unit {
+  match registrations.get(handle) {
+    Some(registration) => {
+      let navigation_state = match event {
+        WebViewEvent::SourceChanged(url) =>
+          {
+            url,
+            can_go_back: registration.navigation_state.can_go_back,
+            can_go_forward: registration.navigation_state.can_go_forward,
+          }
+        WebViewEvent::HistoryChanged(can_go_back, can_go_forward) =>
+          {
+            url: registration.navigation_state.url,
+            can_go_back,
+            can_go_forward,
+          }
+        _ => return
+      }
+      registrations.set(handle, {
+        lifecycle: registration.lifecycle,
+        navigation_state,
+        on_event: registration.on_event,
+        on_navigation: registration.on_navigation,
+        on_media_permission: registration.on_media_permission,
+      })
     }
     None => ()
   }
