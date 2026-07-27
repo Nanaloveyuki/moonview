@@ -4,9 +4,6 @@
 `Nanaloveyuki/ajni/webview`. It does not import Moonview's desktop root package
 and does not cause desktop SDK linkage.
 
-Run `moon update` once when a local MoonBit registry snapshot predates
-`Nanaloveyuki/ajni@0.1.1`.
-
 Before calling MoonBit, the Android application must initialize ajni and attach
 the Activity-owned container on Android's main thread:
 
