@@ -4,6 +4,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <objc/message.h>
 #include <objc/runtime.h>
+#include <pthread.h>
 
 #include <moonbit.h>
 
@@ -768,6 +769,11 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() {
   return class_object("WKWebView") != nil ? 1 : 0;
 }
 
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_current_thread_token() {
+  uint64_t token = 0;
+  return pthread_threadid_np(nullptr, &token) == 0 ? token : 0;
+}
+
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
@@ -1070,6 +1076,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(Na
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_protocol_callback(ProtocolTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_media_permission_callback(MediaPermissionTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_current_thread_token() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }

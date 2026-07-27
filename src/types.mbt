@@ -17,12 +17,15 @@ pub(all) enum WebViewLifecycle {
 } derive(Eq, Debug)
 
 ///|
-/// Failures reported before or during native WebView creation, or after disposal.
+/// Failures reported before or during native WebView creation, after disposal,
+/// or when a command is issued outside the owner UI thread.
 pub(all) enum WebViewError {
   Unavailable
   Unsupported(String)
   ConfigurationLocked
   CreateRejected
+  /// The command must run on the UI thread that created this WebView.
+  WrongThread
   Destroyed
   NativeFailure(Int, String)
 } derive(Eq, Debug)

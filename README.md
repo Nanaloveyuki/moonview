@@ -27,7 +27,8 @@ The package-level reference is [src/README.mbt.md](src/README.mbt.md).
 
 Create the WebView on the UI thread that owns its native parent, keep that
 platform's event loop running, resize it with the parent, and destroy it before
-the parent is destroyed.
+the parent is destroyed. Every command, including `destroy`, must run on that
+same UI thread; Moonview does not provide a cross-thread dispatcher.
 
 | Platform | `parent_handle` passed to `WebView::create` |
 | --- | --- |

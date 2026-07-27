@@ -2,6 +2,7 @@
 /// An embedded platform WebView associated with a caller-owned native container.
 pub struct WebView {
   priv handle : UInt64
+  priv owner_thread : UInt64
 }
 
 ///|
@@ -38,7 +39,8 @@ pub fn register_custom_scheme(name : String) -> Result[Unit, WebViewError] {
 /// The caller must keep the native parent container alive and run its UI event
 /// loop until the listener receives `WebViewEvent::Ready` or `CreationFailed`.
 /// On Windows, this is an `HWND`; on macOS, an `NSView*`; and on Linux, a
-/// `GtkFixed*`.
+/// `GtkFixed*`. Every later command, including `destroy`, must use this same
+/// UI thread.
 pub fn WebView::create(
   parent_handle : UInt64,
   options : WebViewOptions,
@@ -52,6 +54,10 @@ pub fn WebView::create(
   } else if !available() {
     Err(WebViewError::Unavailable)
   } else {
+    let owner_thread = native_thread_token()
+    if owner_thread == 0UL {
+      return Err(WebViewError::CreateRejected)
+    }
     ensure_native_callbacks()
     if !custom_schemes_locked.contains(0) {
       native_lock_custom_schemes()
@@ -72,7 +78,7 @@ pub fn WebView::create(
       Err(WebViewError::CreateRejected)
     } else {
       register_view(handle, options)
-      let view = WebView::{ handle, }
+      let view = WebView::{ handle, owner_thread }
       if !options.visible {
         ignore(native_set_visible(handle, false))
       }
@@ -111,7 +117,7 @@ pub fn WebView::attach_ohos(
     } else {
       register_ohos_view(handle, options)
       native_start_ohos(handle)
-      Ok(WebView::{ handle, })
+      Ok(WebView::{ handle, owner_thread: 0UL })
     }
   }
 }
@@ -219,19 +225,23 @@ pub fn WebView::set_zoom_factor(
 /// This is supported by the Windows and Linux backends. macOS does not expose
 /// a supported public API for programmatically opening WKWebView inspector.
 pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
-  match self.lifecycle() {
-    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => Err(error)
-    _ =>
-      if native_open_devtools(self.handle) != 0 {
-        Ok(())
-      } else {
-        Err(
-          WebViewError::Unsupported(
-            "WebView developer tools are unavailable on this backend",
-          ),
-        )
-      }
+  if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
+  } else {
+    match self.lifecycle() {
+      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+      WebViewLifecycle::Failed(error) => Err(error)
+      _ =>
+        if native_open_devtools(self.handle) != 0 {
+          Ok(())
+        } else {
+          Err(
+            WebViewError::Unsupported(
+              "WebView developer tools are unavailable on this backend",
+            ),
+          )
+        }
+    }
   }
 }
 
@@ -241,19 +251,23 @@ pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
 /// The dialog is available after `Ready`. Older WebView2 runtimes and macOS
 /// releases before 11 return `Unsupported`.
 pub fn WebView::open_print_dialog(self : WebView) -> Result[Unit, WebViewError] {
-  match self.lifecycle() {
-    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => Err(error)
-    _ =>
-      if native_open_print_dialog(self.handle) != 0 {
-        Ok(())
-      } else {
-        Err(
-          WebViewError::Unsupported(
-            "WebView print dialog is unavailable on this backend",
-          ),
-        )
-      }
+  if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
+  } else {
+    match self.lifecycle() {
+      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+      WebViewLifecycle::Failed(error) => Err(error)
+      _ =>
+        if native_open_print_dialog(self.handle) != 0 {
+          Ok(())
+        } else {
+          Err(
+            WebViewError::Unsupported(
+              "WebView print dialog is unavailable on this backend",
+            ),
+          )
+        }
+    }
   }
 }
 
@@ -293,6 +307,8 @@ pub fn WebView::respond_protocol(
         "OpenHarmony custom-scheme responses require a future IO-thread adapter",
       ),
     )
+  } else if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
   } else {
     match self.lifecycle() {
       WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
@@ -321,7 +337,9 @@ pub fn WebView::respond_protocol(
 ///|
 /// Destroys the native child view. Repeated calls are harmless.
 pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
-  if self.lifecycle() == WebViewLifecycle::Destroyed {
+  if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
+  } else if self.lifecycle() == WebViewLifecycle::Destroyed {
     Ok(())
   } else if native_destroy(self.handle) != 0 {
     unregister_view(self.handle)
@@ -336,21 +354,46 @@ pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
 }
 
 ///|
+fn WebView::on_owner_thread(self : WebView) -> Bool {
+  if native_is_ohos() {
+    true
+  } else {
+    match owner_thread_result(native_is_owner_thread(self.owner_thread)) {
+      Ok(_) => true
+      Err(_) => false
+    }
+  }
+}
+
+///|
+fn owner_thread_result(on_owner_thread : Bool) -> Result[Unit, WebViewError] {
+  if on_owner_thread {
+    Ok(())
+  } else {
+    Err(WebViewError::WrongThread)
+  }
+}
+
+///|
 fn WebView::with_handle(
   self : WebView,
   operation_name : String,
   operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
-  match self.lifecycle() {
-    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => Err(error)
-    _ if native_is_ohos() =>
-      Err(
-        WebViewError::Unsupported(
-          "This operation is controlled by the ArkUI host or is not exposed by ArkWeb API level 12",
-        ),
-      )
-    _ => command_result(operation_name, operation(self.handle))
+  if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
+  } else {
+    match self.lifecycle() {
+      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+      WebViewLifecycle::Failed(error) => Err(error)
+      _ if native_is_ohos() =>
+        Err(
+          WebViewError::Unsupported(
+            "This operation is controlled by the ArkUI host or is not exposed by ArkWeb API level 12",
+          ),
+        )
+      _ => command_result(operation_name, operation(self.handle))
+    }
   }
 }
 
@@ -360,10 +403,14 @@ fn WebView::with_ohos_supported_handle(
   operation_name : String,
   operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
-  match self.lifecycle() {
-    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => Err(error)
-    _ => command_result(operation_name, operation(self.handle))
+  if !self.on_owner_thread() {
+    Err(WebViewError::WrongThread)
+  } else {
+    match self.lifecycle() {
+      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+      WebViewLifecycle::Failed(error) => Err(error)
+      _ => command_result(operation_name, operation(self.handle))
+    }
   }
 }
 

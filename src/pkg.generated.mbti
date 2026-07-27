@@ -99,6 +99,7 @@ pub(all) enum WebViewError {
   Unsupported(String)
   ConfigurationLocked
   CreateRejected
+  WrongThread
   Destroyed
   NativeFailure(Int, String)
 } derive(Eq, @debug.Debug)

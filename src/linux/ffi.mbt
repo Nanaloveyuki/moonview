@@ -3,6 +3,9 @@
 pub extern "C" fn available() -> Int = "moonview_linux_available"
 
 ///|
+pub extern "C" fn current_thread_token() -> UInt64 = "moonview_linux_current_thread_token"
+
+///|
 #borrow(call_closure)
 #owned(callback)
 pub extern "C" fn install_event_callback(
