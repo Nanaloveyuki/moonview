@@ -48,6 +48,11 @@ pub(all) struct NavigationState {
 } derive(Eq, @debug.Debug)
 pub fn NavigationState::new(url? : String, can_go_back? : Bool, can_go_forward? : Bool) -> Self
 
+pub(all) enum NewWindowDecision {
+  Deny
+  NavigateCurrent
+} derive(Eq, @debug.Debug)
+
 pub(all) struct OhosAttachOptions {
   on_event : (WebViewEvent) -> Unit
 }
@@ -157,9 +162,10 @@ pub(all) struct WebViewOptions {
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
+  on_new_window : (String) -> NewWindowDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
-pub fn WebViewOptions::new(bounds~ : Rect, context? : WebContext, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision, on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision) -> Self
+pub fn WebViewOptions::new(bounds~ : Rect, context? : WebContext, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision, on_new_window? : (String) -> NewWindowDecision, on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision) -> Self
 
 // Type aliases
 

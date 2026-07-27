@@ -31,6 +31,7 @@ enum EventKind : int32_t {
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using NewWindowTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
@@ -42,6 +43,8 @@ EventTrampoline g_event_trampoline = nullptr;
 void *g_event_closure = nullptr;
 NavigationTrampoline g_navigation_trampoline = nullptr;
 void *g_navigation_closure = nullptr;
+NewWindowTrampoline g_new_window_trampoline = nullptr;
+void *g_new_window_closure = nullptr;
 ProtocolTrampoline g_protocol_trampoline = nullptr;
 void *g_protocol_closure = nullptr;
 MediaPermissionTrampoline g_media_permission_trampoline = nullptr;
@@ -190,6 +193,11 @@ bool allow_navigation(View *view, const std::string &url) {
     return true;
   }
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(url)) != 0;
+}
+
+bool navigate_new_window_in_place(View *view, const std::string &url) {
+  return g_new_window_trampoline != nullptr && g_new_window_closure != nullptr &&
+      g_new_window_trampoline(g_new_window_closure, view->handle, make_bytes(url)) == 1;
 }
 
 bool valid_custom_scheme(const std::string &scheme) {
@@ -357,6 +365,13 @@ gboolean handle_decide_policy(WebKitWebView *, WebKitPolicyDecision *decision,
       webkit_navigation_action_get_request(action);
   const gchar *uri = request == nullptr ? nullptr : webkit_uri_request_get_uri(request);
   const std::string url = uri == nullptr ? "" : uri;
+  if (type == WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION) {
+    if (navigate_new_window_in_place(view, url) && request != nullptr) {
+      webkit_web_view_load_request(view->webview, request);
+    }
+    webkit_policy_decision_ignore(decision);
+    return TRUE;
+  }
   emit_event(view, kNavigationStarting, url);
   if (allow_navigation(view, url)) {
     return FALSE;
@@ -589,6 +604,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_navigation_callback(
   }
   g_navigation_trampoline = trampoline;
   g_navigation_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_new_window_callback(
+    NewWindowTrampoline trampoline, void *closure) {
+  if (g_new_window_closure != nullptr) {
+    moonbit_decref(g_new_window_closure);
+  }
+  g_new_window_trampoline = trampoline;
+  g_new_window_closure = closure;
 }
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_protocol_callback(
@@ -894,6 +918,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_post_message(uint64_t handl
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using NewWindowTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t);
@@ -901,6 +926,7 @@ using MediaPermissionTrampoline = int32_t (*)(void *, uint64_t, int32_t, moonbit
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_event_callback(EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_navigation_callback(NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_new_window_callback(NewWindowTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_protocol_callback(ProtocolTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_media_permission_callback(MediaPermissionTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() { return 0; }

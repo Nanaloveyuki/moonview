@@ -37,6 +37,16 @@ pub extern "C" fn install_navigation_callback(
   callback : (UInt64, Bytes) -> Int,
 ) -> Unit = "moonview_windows_install_navigation_callback"
 
+///|
+/// Receives a page-requested new-window URL. Return `1` to navigate the
+/// requesting WebView in place; any other result denies the request.
+#borrow(call_closure)
+#owned(callback)
+pub extern "C" fn install_new_window_callback(
+  call_closure : FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int],
+  callback : (UInt64, Bytes) -> Int,
+) -> Unit = "moonview_windows_install_new_window_callback"
+
 ///| Protocol callback arguments are `(view, request_id, scheme, method, uri,
 
 ///|

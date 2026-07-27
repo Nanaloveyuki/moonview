@@ -96,6 +96,8 @@ of this cross-platform package API.
 ## Main Entry Points
 
 - `WebViewOptions::new(...)` configures creation callbacks and initial content.
+- `on_new_window` denies page-created windows by default, or can return
+  `NewWindowDecision::NavigateCurrent` to redirect the requesting WebView.
 - `WebView::create(...)` embeds an asynchronously-created native child view.
 - `WebView::set_bounds(...)`, `navigate(...)`, `eval(...)`, and
   `post_message(...)` control a live view.

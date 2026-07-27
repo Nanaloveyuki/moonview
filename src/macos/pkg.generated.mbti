@@ -26,6 +26,8 @@ pub fn install_media_permission_callback(FuncRef[((UInt64, Int, Bytes) -> Int, U
 
 pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
 
+pub fn install_new_window_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
+
 pub fn install_protocol_callback(FuncRef[((UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit, UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit], (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit) -> Unit
 
 pub fn load_html(UInt64, Bytes) -> Int

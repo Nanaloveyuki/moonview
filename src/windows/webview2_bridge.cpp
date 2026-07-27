@@ -45,11 +45,15 @@ typedef void (*EventTrampoline)(void *closure, uint64_t view, int32_t kind,
                                 moonbit_bytes_t detail, int32_t code);
 typedef int32_t (*NavigationTrampoline)(void *closure, uint64_t view,
                                         moonbit_bytes_t uri);
+typedef int32_t (*NewWindowTrampoline)(void *closure, uint64_t view,
+                                       moonbit_bytes_t uri);
 
 EventTrampoline g_event_trampoline = nullptr;
 void *g_event_closure = nullptr;
 NavigationTrampoline g_navigation_trampoline = nullptr;
 void *g_navigation_closure = nullptr;
+NewWindowTrampoline g_new_window_trampoline = nullptr;
+void *g_new_window_closure = nullptr;
 std::atomic<uint64_t> g_next_view_handle{1};
 
 moonbit_bytes_t make_bytes(const std::string &value) {
@@ -202,6 +206,11 @@ int32_t navigation_allowed(const std::shared_ptr<View> &view, const std::string 
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(uri));
 }
 
+bool navigate_new_window_in_place(const std::shared_ptr<View> &view, const std::string &uri) {
+  return g_new_window_trampoline != nullptr && g_new_window_closure != nullptr &&
+      g_new_window_trampoline(g_new_window_closure, view->handle, make_bytes(uri)) == 1;
+}
+
 void fail_waiting_views(const EnvironmentKey &key, HRESULT result, const char *operation);
 
 #include "webview2_protocol.inc"
@@ -349,10 +358,24 @@ void install_handlers(const std::shared_ptr<View> &view) {
       &token);
   view->webview->add_NewWindowRequested(
       Callback<ICoreWebView2NewWindowRequestedEventHandler>(
-          [](ICoreWebView2 *, ICoreWebView2NewWindowRequestedEventArgs *args) -> HRESULT {
-            if (args != nullptr) {
-              args->put_Handled(TRUE);
+          [weak_view](ICoreWebView2 *, ICoreWebView2NewWindowRequestedEventArgs *args) -> HRESULT {
+            const std::shared_ptr<View> locked = weak_view.lock();
+            if (args == nullptr || !locked || locked->destroyed) {
+              return S_OK;
             }
+            LPWSTR uri = nullptr;
+            args->get_Uri(&uri);
+            const std::string text = wide_to_utf8(uri);
+            if (uri != nullptr) {
+              CoTaskMemFree(uri);
+            }
+            if (navigate_new_window_in_place(locked, text) && locked->webview) {
+              const std::wstring target = utf8_to_wide(text);
+              if (!target.empty()) {
+                locked->webview->Navigate(target.c_str());
+              }
+            }
+            args->put_Handled(TRUE);
             return S_OK;
           })
           .Get(),
@@ -671,6 +694,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
   g_navigation_closure = closure;
 }
 
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_new_window_callback(
+    NewWindowTrampoline trampoline, void *closure) {
+  if (g_new_window_closure != nullptr) {
+    moonbit_decref(g_new_window_closure);
+  }
+  g_new_window_trampoline = trampoline;
+  g_new_window_closure = closure;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_protocol_callback(
     ProtocolTrampoline trampoline, void *closure) {
   if (g_protocol_closure != nullptr) {
@@ -935,6 +967,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_post_message(uint64_t han
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using NewWindowTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
@@ -946,6 +979,8 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_event_callback(
     EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
     NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_new_window_callback(
+    NewWindowTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_protocol_callback(
     ProtocolTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_media_permission_callback(

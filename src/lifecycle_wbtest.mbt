@@ -203,6 +203,28 @@ test "navigation decisions are isolated per view and deny unknown views" {
 }
 
 ///|
+test "new window requests deny by default and remain isolated per view" {
+  let denied : UInt64 = 9004
+  let redirected : UInt64 = 9005
+  let url = encode_utf8("https://example.test/popup")
+  register_view(
+    denied,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1)),
+  )
+  register_view(
+    redirected,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1), on_new_window=_url => {
+      NewWindowDecision::NavigateCurrent
+    }),
+  )
+  assert_eq(decide_new_window(denied, url), 0)
+  assert_eq(decide_new_window(redirected, url), 1)
+  unregister_view(denied)
+  unregister_view(redirected)
+  assert_eq(decide_new_window(redirected, url), 0)
+}
+
+///|
 test "options preserve the configured user agent" {
   let options = WebViewOptions::new(
     bounds=Rect::new(x=0, y=0, width=1, height=1),
