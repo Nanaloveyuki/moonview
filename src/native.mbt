@@ -273,124 +273,124 @@ fn native_set_bounds(
   y : Int,
   width : Int,
   height : Int,
-) -> Unit {
+) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.set_bounds(handle, x, y, width, height)
     NativeBackend::MacOS => @macos.set_bounds(handle, x, y, width, height)
     NativeBackend::Linux => @linux.set_bounds(handle, x, y, width, height)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_set_visible(handle : UInt64, visible : Bool) -> Unit {
+fn native_set_visible(handle : UInt64, visible : Bool) -> Int {
   let visible = if visible { 1 } else { 0 }
   match active_backend() {
     NativeBackend::Windows => @windows.set_visible(handle, visible)
     NativeBackend::MacOS => @macos.set_visible(handle, visible)
     NativeBackend::Linux => @linux.set_visible(handle, visible)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_focus(handle : UInt64) -> Unit {
+fn native_focus(handle : UInt64) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.focus(handle)
     NativeBackend::MacOS => @macos.focus(handle)
     NativeBackend::Linux => @linux.focus(handle)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_navigate(handle : UInt64, url : Bytes) -> Unit {
+fn native_navigate(handle : UInt64, url : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.navigate(handle, url)
     NativeBackend::MacOS => @macos.navigate(handle, url)
     NativeBackend::Linux => @linux.navigate(handle, url)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_load_html(handle : UInt64, html : Bytes) -> Unit {
+fn native_load_html(handle : UInt64, html : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.load_html(handle, html)
     NativeBackend::MacOS => @macos.load_html(handle, html)
     NativeBackend::Linux => @linux.load_html(handle, html)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_reload(handle : UInt64) -> Unit {
+fn native_reload(handle : UInt64) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.reload(handle)
     NativeBackend::MacOS => @macos.reload(handle)
     NativeBackend::Linux => @linux.reload(handle)
     NativeBackend::Ohos => @ohos.reload(handle)
-    NativeBackend::Unsupported => ()
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_stop(handle : UInt64) -> Unit {
+fn native_stop(handle : UInt64) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.stop(handle)
     NativeBackend::MacOS => @macos.stop(handle)
     NativeBackend::Linux => @linux.stop(handle)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_go_back(handle : UInt64) -> Unit {
+fn native_go_back(handle : UInt64) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.go_back(handle)
     NativeBackend::MacOS => @macos.go_back(handle)
     NativeBackend::Linux => @linux.go_back(handle)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_go_forward(handle : UInt64) -> Unit {
+fn native_go_forward(handle : UInt64) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.go_forward(handle)
     NativeBackend::MacOS => @macos.go_forward(handle)
     NativeBackend::Linux => @linux.go_forward(handle)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_add_init_script(handle : UInt64, script : Bytes) -> Unit {
+fn native_add_init_script(handle : UInt64, script : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.add_init_script(handle, script)
     NativeBackend::MacOS => @macos.add_init_script(handle, script)
     NativeBackend::Linux => @linux.add_init_script(handle, script)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_set_zoom(handle : UInt64, factor : Double) -> Unit {
+fn native_set_zoom(handle : UInt64, factor : Double) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.set_zoom(handle, factor)
     NativeBackend::MacOS => @macos.set_zoom(handle, factor)
     NativeBackend::Linux => @linux.set_zoom(handle, factor)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 
@@ -417,24 +417,24 @@ fn native_open_print_dialog(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Unit {
+fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.eval(handle, script, request_id)
     NativeBackend::MacOS => @macos.eval(handle, script, request_id)
     NativeBackend::Linux => @linux.eval(handle, script, request_id)
     NativeBackend::Ohos => @ohos.eval(handle, script)
-    NativeBackend::Unsupported => ()
+    NativeBackend::Unsupported => 0
   }
 }
 
 ///|
-fn native_post_message(handle : UInt64, message : Bytes) -> Unit {
+fn native_post_message(handle : UInt64, message : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.post_message(handle, message)
     NativeBackend::MacOS => @macos.post_message(handle, message)
     NativeBackend::Linux => @linux.post_message(handle, message)
-    NativeBackend::Ohos => ()
-    NativeBackend::Unsupported => ()
+    NativeBackend::Ohos => 0
+    NativeBackend::Unsupported => 0
   }
 }
 

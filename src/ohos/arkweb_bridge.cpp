@@ -145,25 +145,26 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_destroy(uint64_t handle) {
   return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_reload(uint64_t handle) {
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_reload(uint64_t handle) {
   View *view = find_view(handle);
   ArkWeb_ControllerAPI *controller = controller_api();
-  if (view != nullptr && !view->detached && has_controller_api(controller)) {
-    controller->refresh(view->tag.c_str());
-  }
+  if (view == nullptr || view->detached || !has_controller_api(controller)) return 0;
+  controller->refresh(view->tag.c_str());
+  return 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_eval(uint64_t handle,
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_eval(uint64_t handle,
                                                          moonbit_bytes_t script) {
   View *view = find_view(handle);
   ArkWeb_ControllerAPI *controller = controller_api();
   if (view == nullptr || view->detached || !has_controller_api(controller)) {
-    return;
+    return 0;
   }
   const std::string source = bytes_to_utf8(script);
   ArkWeb_JavaScriptObject object{
       reinterpret_cast<const uint8_t *>(source.data()), source.size(), nullptr, nullptr};
   controller->runJavaScript(view->tag.c_str(), &object);
+  return 1;
 }
 
 #else
@@ -190,7 +191,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_ohos_attach(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_destroy(uint64_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_reload(uint64_t) {}
-extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_eval(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_reload(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_eval(uint64_t, moonbit_bytes_t) { return 0; }
 
 #endif

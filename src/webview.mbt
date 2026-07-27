@@ -74,7 +74,7 @@ pub fn WebView::create(
       register_view(handle, options)
       let view = WebView::{ handle, }
       if !options.visible {
-        native_set_visible(handle, false)
+        ignore(native_set_visible(handle, false))
       }
       native_start(handle)
       Ok(view)
@@ -126,7 +126,7 @@ pub fn WebView::set_bounds(
   self : WebView,
   bounds : Rect,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => {
+  self.with_handle("set bounds", handle => {
     native_set_bounds(handle, bounds.x, bounds.y, bounds.width, bounds.height)
   })
 }
@@ -136,12 +136,14 @@ pub fn WebView::set_visible(
   self : WebView,
   visible : Bool,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_set_visible(handle, visible))
+  self.with_handle("set visibility", handle => {
+    native_set_visible(handle, visible)
+  })
 }
 
 ///|
 pub fn WebView::focus(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_focus(handle))
+  self.with_handle("focus", handle => native_focus(handle))
 }
 
 ///|
@@ -149,7 +151,9 @@ pub fn WebView::navigate(
   self : WebView,
   url : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_navigate(handle, encode_utf8(url)))
+  self.with_handle("navigate", handle => {
+    native_navigate(handle, encode_utf8(url))
+  })
 }
 
 ///|
@@ -157,27 +161,29 @@ pub fn WebView::load_html(
   self : WebView,
   html : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_load_html(handle, encode_utf8(html)))
+  self.with_handle("load HTML", handle => {
+    native_load_html(handle, encode_utf8(html))
+  })
 }
 
 ///|
 pub fn WebView::reload(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_ohos_supported_handle(handle => native_reload(handle))
+  self.with_ohos_supported_handle("reload", handle => native_reload(handle))
 }
 
 ///|
 pub fn WebView::stop(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_stop(handle))
+  self.with_handle("stop", handle => native_stop(handle))
 }
 
 ///|
 pub fn WebView::go_back(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_go_back(handle))
+  self.with_handle("go back", handle => native_go_back(handle))
 }
 
 ///|
 pub fn WebView::go_forward(self : WebView) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_go_forward(handle))
+  self.with_handle("go forward", handle => native_go_forward(handle))
 }
 
 ///|
@@ -185,7 +191,9 @@ pub fn WebView::add_init_script(
   self : WebView,
   script : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_add_init_script(handle, encode_utf8(script)))
+  self.with_handle("add initialization script", handle => {
+    native_add_init_script(handle, encode_utf8(script))
+  })
 }
 
 ///|
@@ -201,7 +209,7 @@ pub fn WebView::set_zoom_factor(
       ),
     )
   } else {
-    self.with_handle(handle => native_set_zoom(handle, factor))
+    self.with_handle("set zoom", handle => native_set_zoom(handle, factor))
   }
 }
 
@@ -255,7 +263,7 @@ pub fn WebView::eval(
   script : String,
   request_id : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_ohos_supported_handle(handle => {
+  self.with_ohos_supported_handle("evaluate script", handle => {
     native_eval(handle, encode_utf8(script), encode_utf8(request_id))
   })
 }
@@ -266,7 +274,9 @@ pub fn WebView::post_message(
   self : WebView,
   message : String,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle(handle => native_post_message(handle, encode_utf8(message)))
+  self.with_handle("post message", handle => {
+    native_post_message(handle, encode_utf8(message))
+  })
 }
 
 ///|
@@ -328,7 +338,8 @@ pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
 ///|
 fn WebView::with_handle(
   self : WebView,
-  operation : (UInt64) -> Unit,
+  operation_name : String,
+  operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
   match self.lifecycle() {
     WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
@@ -339,24 +350,36 @@ fn WebView::with_handle(
           "This operation is controlled by the ArkUI host or is not exposed by ArkWeb API level 12",
         ),
       )
-    _ => {
-      operation(self.handle)
-      Ok(())
-    }
+    _ => command_result(operation_name, operation(self.handle))
   }
 }
 
 ///|
 fn WebView::with_ohos_supported_handle(
   self : WebView,
-  operation : (UInt64) -> Unit,
+  operation_name : String,
+  operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
   match self.lifecycle() {
     WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
     WebViewLifecycle::Failed(error) => Err(error)
-    _ => {
-      operation(self.handle)
-      Ok(())
-    }
+    _ => command_result(operation_name, operation(self.handle))
+  }
+}
+
+///|
+fn command_result(
+  operation_name : String,
+  accepted : Int,
+) -> Result[Unit, WebViewError] {
+  if accepted != 0 {
+    Ok(())
+  } else {
+    Err(
+      WebViewError::NativeFailure(
+        0,
+        "WebView backend rejected " + operation_name,
+      ),
+    )
   }
 }

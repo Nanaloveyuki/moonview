@@ -72,6 +72,10 @@ ignore(view.navigate("https://example.com/docs"))
 ignore(view.destroy())
 ```
 
+Control methods return `Ok(())` only when the native backend accepts or queues
+the command for a live view. Page navigation and JavaScript execution remain
+asynchronous; observe their final outcomes through `WebViewEvent`.
+
 ## OpenHarmony ArkWeb (Experimental)
 
 OpenHarmony does not expose native creation of an arbitrary child WebView. The

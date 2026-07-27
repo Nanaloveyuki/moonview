@@ -59,8 +59,8 @@ pub extern "C" fn start(view : UInt64) -> Unit = "moonview_ohos_start"
 pub extern "C" fn destroy(view : UInt64) -> Int = "moonview_ohos_destroy"
 
 ///|
-pub extern "C" fn reload(view : UInt64) -> Unit = "moonview_ohos_reload"
+pub extern "C" fn reload(view : UInt64) -> Int = "moonview_ohos_reload"
 
 ///|
 #borrow(script)
-pub extern "C" fn eval(view : UInt64, script : Bytes) -> Unit = "moonview_ohos_eval"
+pub extern "C" fn eval(view : UInt64, script : Bytes) -> Int = "moonview_ohos_eval"
