@@ -36,6 +36,7 @@ fn Smoke::start(self : Smoke, hwnd : UInt64) -> Unit {
       #|  if (message === "host-ping") window.moonview.postMessage("page-ack");
       #|};
     ),
+    user_agent="moonview-smoke/0.1",
     on_event=event => self.handle_event(event),
     on_navigation=_url => @moonview.NavigationDecision::Allow,
   )
@@ -55,7 +56,8 @@ fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
     @moonview.WebViewEvent::PageMessage("page-ready") => self.post_ping()
     @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
     @moonview.WebViewEvent::ScriptResult(request_id, value) => {
-      if request_id == "smoke-eval" && value == "42" {
+      if request_id == "smoke-eval" && value == "[\"moonview-smoke/0.1\",42]" {
+        self.set_zoom()
         self.succeeded = true
         println("moonview smoke: passed")
       } else {
@@ -92,7 +94,16 @@ fn Smoke::post_ping(self : Smoke) -> Unit {
 ///|
 fn Smoke::evaluate(self : Smoke) -> Unit {
   match self.view {
-    Some(view) => ignore(view.eval("40 + 2", "smoke-eval"))
+    Some(view) =>
+      ignore(view.eval("[navigator.userAgent, 40 + 2]", "smoke-eval"))
+    None => ()
+  }
+}
+
+///|
+fn Smoke::set_zoom(self : Smoke) -> Unit {
+  match self.view {
+    Some(view) => ignore(view.set_zoom_factor(1.25))
     None => ()
   }
 }

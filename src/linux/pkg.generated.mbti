@@ -6,7 +6,7 @@ pub fn add_init_script(UInt64, Bytes) -> Unit
 
 pub fn available() -> Int
 
-pub fn create(UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes) -> UInt64
+pub fn create(UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes, Bytes) -> UInt64
 
 pub fn destroy(UInt64) -> Int
 
@@ -26,6 +26,10 @@ pub fn load_html(UInt64, Bytes) -> Unit
 
 pub fn navigate(UInt64, Bytes) -> Unit
 
+pub fn open_devtools(UInt64) -> Int
+
+pub fn open_print_dialog(UInt64) -> Int
+
 pub fn post_message(UInt64, Bytes) -> Unit
 
 pub fn reload(UInt64) -> Unit
@@ -33,6 +37,8 @@ pub fn reload(UInt64) -> Unit
 pub fn set_bounds(UInt64, Int, Int, Int, Int) -> Unit
 
 pub fn set_visible(UInt64, Int) -> Unit
+
+pub fn set_zoom(UInt64, Double) -> Unit
 
 pub fn start(UInt64) -> Unit
 

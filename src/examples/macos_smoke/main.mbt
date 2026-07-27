@@ -1,11 +1,14 @@
 ///|
-extern "C" fn create_host(width : Int, height : Int) -> UInt64 = "moonview_linux_smoke_create_host"
+extern "C" fn create_host(width : Int, height : Int) -> UInt64 = "moonview_macos_smoke_create_host"
 
 ///|
-extern "C" fn run_loop() -> Int = "moonview_linux_smoke_run_loop"
+extern "C" fn run_loop() -> Int = "moonview_macos_smoke_run_loop"
 
 ///|
-extern "C" fn succeed() -> Unit = "moonview_linux_smoke_succeed"
+extern "C" fn succeed() -> Unit = "moonview_macos_smoke_succeed"
+
+///|
+extern "C" fn destroy_host() -> Unit = "moonview_macos_smoke_destroy_host"
 
 ///|
 struct Smoke {
@@ -18,7 +21,7 @@ fn Smoke::start(self : Smoke, parent_handle : UInt64) -> Unit {
   let options = @moonview.WebViewOptions::new(
     bounds=@moonview.Rect::new(x=0, y=0, width=640, height=480),
     initial_html=(
-      #|<!doctype html><title>moonview GTK smoke</title><script>
+      #|<!doctype html><title>moonview macOS smoke</title><script>
       #|window.moonview.onmessage = event => {
       #|  if (event.data === 'host-ping') window.moonview.postMessage('page-ack');
       #|};
@@ -39,7 +42,7 @@ fn Smoke::start(self : Smoke, parent_handle : UInt64) -> Unit {
 ///|
 fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
   match event {
-    @moonview.WebViewEvent::Ready => println("moonview linux smoke: ready")
+    @moonview.WebViewEvent::Ready => println("moonview macOS smoke: ready")
     @moonview.WebViewEvent::PageMessage("page-ready") => self.post_ping()
     @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
     @moonview.WebViewEvent::ScriptResult(request_id, value) =>
@@ -81,7 +84,7 @@ fn Smoke::set_zoom(self : Smoke) -> Unit {
 fn Smoke::finish(self : Smoke) -> Unit {
   if !self.passed {
     self.passed = true
-    println("moonview linux smoke: passed")
+    println("moonview macOS smoke: passed")
     match self.view {
       Some(view) => ignore(view.destroy())
       None => ()
@@ -94,11 +97,12 @@ fn Smoke::finish(self : Smoke) -> Unit {
 fn main {
   let parent_handle = create_host(640, 480)
   if parent_handle == 0UL {
-    abort("moonview linux smoke: unable to create GTK host")
+    abort("moonview macOS smoke: unable to create AppKit host")
   }
   let smoke = { view: None, passed: false }
   smoke.start(parent_handle)
   if run_loop() != 0 || !smoke.passed {
-    abort("moonview linux smoke: failed")
+    abort("moonview macOS smoke: failed")
   }
+  destroy_host()
 }

@@ -1,0 +1,31 @@
+name: Fedora Native
+
+on:
+  push:
+    branches:
+      - main
+      - codex/**
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native dependencies
+        run: |
+          dnf install -y \
+            curl \
+            gcc-c++ \
+            gtk3-devel \
+            nodejs \
+            tar \
+            webkit2gtk4.1-devel \
+            xorg-x11-server-Xvfb
+      - name: Install MoonBit
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      - name: Run WebKitGTK tests and smoke
+        run: xvfb-run -a sh scripts/test-linux.sh

@@ -3,7 +3,8 @@ name: macOS Native
 on:
   push:
     branches:
-      - codex/macos-linux-backends
+      - main
+      - codex/**
   pull_request:
     branches:
       - main
@@ -23,3 +24,5 @@ jobs:
         run: moon test --target native
       - name: Probe WKWebView runtime
         run: moon run src/examples/macos_probe --target native
+      - name: Run WKWebView lifecycle smoke
+        run: moon run src/examples/macos_smoke --target native

@@ -60,7 +60,8 @@ thread and must return promptly.
 
 The injected bridge exposes `window.moonview.postMessage(string)`. Message
 payloads are UTF-8 strings; applications own any JSON or RPC protocol layered
-on top of them.
+on top of them. `WebView::eval` reports `ScriptResult` as JSON text on every
+backend; JavaScript `undefined` is reported as `null`.
 
 ## Embedded Use
 
@@ -82,6 +83,14 @@ match @moonview.WebView::create(parent_handle, options) {
 `Ready` and `CreationFailed` are asynchronous events. An initialization script
 configured in `WebViewOptions` is installed before the first document loads;
 `add_init_script` applies to documents loaded after it is registered.
+`user_agent` configures the engine before its first document, and
+`set_zoom_factor` accepts positive page zoom values.
+`open_devtools` is supported by WebView2 and WebKitGTK; WKWebView has no
+supported public API to open its inspector, so macOS returns `Unsupported`.
+`open_print_dialog` uses the platform print UI and may return `Unsupported` on
+an older WebView2 runtime or macOS release.
+The embedded API does not create host windows: popup and `window.open` requests
+are denied by default on every backend.
 
 ## Validation
 

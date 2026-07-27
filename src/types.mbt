@@ -20,6 +20,7 @@ pub(all) enum WebViewLifecycle {
 /// Failures reported before or during native WebView creation, or after disposal.
 pub(all) enum WebViewError {
   Unavailable
+  Unsupported(String)
   CreateRejected
   Destroyed
   NativeFailure(Int, String)
@@ -36,7 +37,9 @@ pub(all) enum NavigationDecision {
 /// Events emitted on the native UI thread that owns the parent container.
 ///
 /// `ScriptResult` and `ScriptFailed` preserve the request identifier supplied
-/// to `WebView::eval`. Messages are UTF-8 strings without an imposed protocol.
+/// to `WebView::eval`. `ScriptResult` is JSON text; an `undefined` JavaScript
+/// result is represented as `null`. Page messages are UTF-8 strings without an
+/// imposed protocol.
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
@@ -61,6 +64,7 @@ pub(all) struct WebViewOptions {
   initial_url : String
   initial_html : String
   initialization_script : String
+  user_agent : String
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
@@ -77,6 +81,7 @@ pub fn WebViewOptions::new(
   initial_url? : String = "",
   initial_html? : String = "",
   initialization_script? : String = "",
+  user_agent? : String = "",
   visible? : Bool = true,
   on_event? : (WebViewEvent) -> Unit = ignore_event,
   on_navigation? : (String) -> NavigationDecision = allow_navigation,
@@ -86,6 +91,7 @@ pub fn WebViewOptions::new(
     initial_url,
     initial_html,
     initialization_script,
+    user_agent,
     visible,
     on_event,
     on_navigation,

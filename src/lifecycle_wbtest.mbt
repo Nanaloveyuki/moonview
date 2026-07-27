@@ -23,6 +23,30 @@ test "native event decoding preserves WebView2 payloads" {
 }
 
 ///|
+test "script results retain their JSON representation" {
+  let string_result = decode_native_event(
+    9,
+    encode_utf8("\"moonview\""),
+    encode_utf8("request-json"),
+    0,
+  )
+  assert_eq(
+    string_result,
+    WebViewEvent::ScriptResult("request-json", "\"moonview\""),
+  )
+  let undefined_result = decode_native_event(
+    9,
+    encode_utf8("null"),
+    encode_utf8("request-undefined"),
+    0,
+  )
+  assert_eq(
+    undefined_result,
+    WebViewEvent::ScriptResult("request-undefined", "null"),
+  )
+}
+
+///|
 test "history decoding is insensitive to field order" {
   let event = decode_native_event(
     8,
@@ -77,4 +101,26 @@ test "navigation decisions are isolated per view and deny unknown views" {
   unregister_view(allowed)
   unregister_view(denied)
   assert_eq(decide_navigation(allowed, url), 0)
+}
+
+///|
+test "options preserve the configured user agent" {
+  let options = WebViewOptions::new(
+    bounds=Rect::new(x=0, y=0, width=1, height=1),
+    user_agent="moonview-test/1.0",
+  )
+  assert_eq(options.user_agent, "moonview-test/1.0")
+}
+
+///|
+test "zoom factors must be positive" {
+  let view = WebView::{ handle: 9010 }
+  assert_eq(
+    view.set_zoom_factor(0.0),
+    Err(
+      WebViewError::NativeFailure(
+        0, "WebView zoom factor must be greater than zero",
+      ),
+    ),
+  )
 }

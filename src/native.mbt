@@ -81,19 +81,23 @@ fn native_create(
   initial_url : Bytes,
   initial_html : Bytes,
   initialization_script : Bytes,
+  user_agent : Bytes,
 ) -> UInt64 {
   match active_backend() {
     NativeBackend::Windows =>
       @windows.create(
         parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
+        user_agent,
       )
     NativeBackend::MacOS =>
       @macos.create(
         parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
+        user_agent,
       )
     NativeBackend::Linux =>
       @linux.create(
         parent_handle, x, y, width, height, initial_url, initial_html, initialization_script,
+        user_agent,
       )
     NativeBackend::Unsupported => 0
   }
@@ -223,6 +227,36 @@ fn native_add_init_script(handle : UInt64, script : Bytes) -> Unit {
     NativeBackend::MacOS => @macos.add_init_script(handle, script)
     NativeBackend::Linux => @linux.add_init_script(handle, script)
     NativeBackend::Unsupported => ()
+  }
+}
+
+///|
+fn native_set_zoom(handle : UInt64, factor : Double) -> Unit {
+  match active_backend() {
+    NativeBackend::Windows => @windows.set_zoom(handle, factor)
+    NativeBackend::MacOS => @macos.set_zoom(handle, factor)
+    NativeBackend::Linux => @linux.set_zoom(handle, factor)
+    NativeBackend::Unsupported => ()
+  }
+}
+
+///|
+fn native_open_devtools(handle : UInt64) -> Int {
+  match active_backend() {
+    NativeBackend::Windows => @windows.open_devtools(handle)
+    NativeBackend::MacOS => @macos.open_devtools(handle)
+    NativeBackend::Linux => @linux.open_devtools(handle)
+    NativeBackend::Unsupported => 0
+  }
+}
+
+///|
+fn native_open_print_dialog(handle : UInt64) -> Int {
+  match active_backend() {
+    NativeBackend::Windows => @windows.open_print_dialog(handle)
+    NativeBackend::MacOS => @macos.open_print_dialog(handle)
+    NativeBackend::Linux => @linux.open_print_dialog(handle)
+    NativeBackend::Unsupported => 0
   }
 }
 

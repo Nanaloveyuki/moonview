@@ -111,11 +111,15 @@ struct Command {
     GoBack,
     GoForward,
     Focus,
+    SetZoom,
+    OpenDevTools,
+    OpenPrintDialog,
     Eval,
     PostMessage,
   } kind;
   std::wstring value;
   std::string request_id;
+  double factor = 1.0;
 };
 
 struct View;
@@ -140,6 +144,7 @@ struct View {
   RECT bounds{};
   std::wstring initial_url;
   std::wstring initial_html;
+  std::wstring user_agent;
   std::vector<std::wstring> document_scripts;
   std::deque<Command> pending;
   ComPtr<ICoreWebView2Controller> controller;
@@ -214,6 +219,19 @@ void run_command(const std::shared_ptr<View> &view, const Command &command) {
   case Command::Focus:
     view->controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
     break;
+  case Command::SetZoom:
+    view->controller->put_ZoomFactor(command.factor);
+    break;
+  case Command::OpenDevTools:
+    view->webview->OpenDevToolsWindow();
+    break;
+  case Command::OpenPrintDialog: {
+    ComPtr<ICoreWebView2_16> printer;
+    if (SUCCEEDED(view->webview.As(&printer))) {
+      printer->ShowPrintUI(COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER);
+    }
+    break;
+  }
   case Command::Eval: {
     const std::weak_ptr<View> weak_view = view;
     const std::string request_id = command.request_id;
@@ -293,6 +311,16 @@ void install_handlers(const std::shared_ptr<View> &view) {
             emit_event(locked, kMessage, text,
                        SUCCEEDED(result) ? "" : hresult_text("Web message decode", result),
                        static_cast<int32_t>(result));
+            return S_OK;
+          })
+          .Get(),
+      &token);
+  view->webview->add_NewWindowRequested(
+      Callback<ICoreWebView2NewWindowRequestedEventHandler>(
+          [](ICoreWebView2 *, ICoreWebView2NewWindowRequestedEventArgs *args) -> HRESULT {
+            if (args != nullptr) {
+              args->put_Handled(TRUE);
+            }
             return S_OK;
           })
           .Get(),
@@ -495,6 +523,15 @@ void create_controller(const std::shared_ptr<View> &view) {
                          static_cast<int32_t>(result));
               return S_OK;
             }
+            if (!locked->user_agent.empty()) {
+              ComPtr<ICoreWebView2Settings> settings;
+              if (SUCCEEDED(locked->webview->get_Settings(&settings)) && settings) {
+                ComPtr<ICoreWebView2Settings2> settings2;
+                if (SUCCEEDED(settings.As(&settings2)) && settings2) {
+                  settings2->put_UserAgent(locked->user_agent.c_str());
+                }
+              }
+            }
             apply_bounds(locked);
             install_handlers(locked);
             locked->scripts_installing = true;
@@ -598,7 +635,8 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() {
 
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t hwnd, int32_t x, int32_t y, int32_t width, int32_t height,
-    moonbit_bytes_t url, moonbit_bytes_t html, moonbit_bytes_t initialization_script) {
+    moonbit_bytes_t url, moonbit_bytes_t html, moonbit_bytes_t initialization_script,
+    moonbit_bytes_t user_agent) {
   const HWND parent = reinterpret_cast<HWND>(static_cast<uintptr_t>(hwnd));
   if (parent == nullptr || !IsWindow(parent)) {
     return 0;
@@ -615,6 +653,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
   view->bounds = {x, y, x + width, y + height};
   view->initial_url = utf8_to_wide(bytes_to_utf8(url));
   view->initial_html = utf8_to_wide(bytes_to_utf8(html));
+  view->user_agent = utf8_to_wide(bytes_to_utf8(user_agent));
   view->document_scripts.push_back(bridge_script());
   const std::wstring initial_script = utf8_to_wide(bytes_to_utf8(initialization_script));
   if (!initial_script.empty()) {
@@ -742,6 +781,29 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t handle,
   view->webview->AddScriptToExecuteOnDocumentCreated(text.c_str(), nullptr);
 }
 
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t handle,
+                                                                 double factor) {
+  queue_or_run(find_view(handle), {Command::SetZoom, L"", "", factor});
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t handle) {
+  const std::shared_ptr<View> view = find_view(handle);
+  if (!view || view->destroyed) {
+    return 0;
+  }
+  queue_or_run(view, {Command::OpenDevTools, L"", ""});
+  return 1;
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_t handle) {
+  const std::shared_ptr<View> view = find_view(handle);
+  if (!view || view->destroyed) {
+    return 0;
+  }
+  queue_or_run(view, {Command::OpenPrintDialog, L"", ""});
+  return 1;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(uint64_t handle,
                                                              moonbit_bytes_t script,
                                                              moonbit_bytes_t request_id) {
@@ -768,7 +830,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t,
-    moonbit_bytes_t) { return 0; }
+    moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_bounds(
@@ -782,6 +844,9 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_stop(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_init(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_set_zoom(uint64_t, double) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_eval(
     uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(

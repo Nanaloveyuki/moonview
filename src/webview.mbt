@@ -34,6 +34,7 @@ pub fn WebView::create(
       encode_utf8(options.initial_url),
       encode_utf8(options.initial_html),
       encode_utf8(options.initialization_script),
+      encode_utf8(options.user_agent),
     )
     if handle == 0 {
       Err(WebViewError::CreateRejected)
@@ -119,6 +120,67 @@ pub fn WebView::add_init_script(
   script : String,
 ) -> Result[Unit, WebViewError] {
   self.with_handle(handle => native_add_init_script(handle, encode_utf8(script)))
+}
+
+///|
+/// Sets the page zoom factor. Values must be greater than zero.
+pub fn WebView::set_zoom_factor(
+  self : WebView,
+  factor : Double,
+) -> Result[Unit, WebViewError] {
+  if factor <= 0.0 {
+    Err(
+      WebViewError::NativeFailure(
+        0, "WebView zoom factor must be greater than zero",
+      ),
+    )
+  } else {
+    self.with_handle(handle => native_set_zoom(handle, factor))
+  }
+}
+
+///|
+/// Opens the platform developer tools for this WebView.
+///
+/// This is supported by the Windows and Linux backends. macOS does not expose
+/// a supported public API for programmatically opening WKWebView inspector.
+pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ =>
+      if native_open_devtools(self.handle) != 0 {
+        Ok(())
+      } else {
+        Err(
+          WebViewError::Unsupported(
+            "WebView developer tools are unavailable on this backend",
+          ),
+        )
+      }
+  }
+}
+
+///|
+/// Opens the platform print dialog for the current document.
+///
+/// The dialog is available after `Ready`. Older WebView2 runtimes and macOS
+/// releases before 11 return `Unsupported`.
+pub fn WebView::open_print_dialog(self : WebView) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ =>
+      if native_open_print_dialog(self.handle) != 0 {
+        Ok(())
+      } else {
+        Err(
+          WebViewError::Unsupported(
+            "WebView print dialog is unavailable on this backend",
+          ),
+        )
+      }
+  }
 }
 
 ///|

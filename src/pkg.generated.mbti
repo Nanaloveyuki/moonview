@@ -37,14 +37,18 @@ pub fn WebView::go_forward(Self) -> Result[Unit, WebViewError]
 pub fn WebView::lifecycle(Self) -> WebViewLifecycle
 pub fn WebView::load_html(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::navigate(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::open_devtools(Self) -> Result[Unit, WebViewError]
+pub fn WebView::open_print_dialog(Self) -> Result[Unit, WebViewError]
 pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::reload(Self) -> Result[Unit, WebViewError]
 pub fn WebView::set_bounds(Self, Rect) -> Result[Unit, WebViewError]
 pub fn WebView::set_visible(Self, Bool) -> Result[Unit, WebViewError]
+pub fn WebView::set_zoom_factor(Self, Double) -> Result[Unit, WebViewError]
 pub fn WebView::stop(Self) -> Result[Unit, WebViewError]
 
 pub(all) enum WebViewError {
   Unavailable
+  Unsupported(String)
   CreateRejected
   Destroyed
   NativeFailure(Int, String)
@@ -76,11 +80,12 @@ pub(all) struct WebViewOptions {
   initial_url : String
   initial_html : String
   initialization_script : String
+  user_agent : String
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
 }
-pub fn WebViewOptions::new(bounds~ : Rect, initial_url? : String, initial_html? : String, initialization_script? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision) -> Self
+pub fn WebViewOptions::new(bounds~ : Rect, initial_url? : String, initial_html? : String, initialization_script? : String, user_agent? : String, visible? : Bool, on_event? : (WebViewEvent) -> Unit, on_navigation? : (String) -> NavigationDecision) -> Self
 
 // Type aliases
 
