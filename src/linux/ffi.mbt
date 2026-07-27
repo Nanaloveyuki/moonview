@@ -26,6 +26,14 @@ pub extern "C" fn install_navigation_callback(
 ///|
 #borrow(call_closure)
 #owned(callback)
+pub extern "C" fn install_new_window_callback(
+  call_closure : FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int],
+  callback : (UInt64, Bytes) -> Int,
+) -> Unit = "moonview_linux_install_new_window_callback"
+
+///|
+#borrow(call_closure)
+#owned(callback)
 pub extern "C" fn install_protocol_callback(
   call_closure : FuncRef[
     (

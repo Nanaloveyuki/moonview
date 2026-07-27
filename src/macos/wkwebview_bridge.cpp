@@ -34,6 +34,7 @@ enum EventKind : int32_t {
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using NewWindowTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t,
@@ -45,6 +46,8 @@ EventTrampoline g_event_trampoline = nullptr;
 void *g_event_closure = nullptr;
 NavigationTrampoline g_navigation_trampoline = nullptr;
 void *g_navigation_closure = nullptr;
+NewWindowTrampoline g_new_window_trampoline = nullptr;
+void *g_new_window_closure = nullptr;
 ProtocolTrampoline g_protocol_trampoline = nullptr;
 void *g_protocol_closure = nullptr;
 MediaPermissionTrampoline g_media_permission_trampoline = nullptr;
@@ -240,6 +243,11 @@ bool allow_navigation(View *view, const std::string &url) {
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(url)) != 0;
 }
 
+bool navigate_new_window_in_place(View *view, const std::string &url) {
+  return g_new_window_trampoline != nullptr && g_new_window_closure != nullptr &&
+      g_new_window_trampoline(g_new_window_closure, view->handle, make_bytes(url)) == 1;
+}
+
 bool valid_custom_scheme(const std::string &scheme) {
   if (scheme.empty() || !((scheme[0] >= 'a' && scheme[0] <= 'z') ||
       (scheme[0] >= 'A' && scheme[0] <= 'Z'))) {
@@ -422,6 +430,20 @@ void navigation_decide(id delegate, SEL, id, id action, id decision_handler) {
   call_decision_handler(decision_handler, allow_navigation(found->second, text));
 }
 
+id new_window_requested(id delegate, SEL, id webview, id, id action, id) {
+  const auto found = g_ui_views.find(delegate);
+  if (found == g_ui_views.end()) {
+    return nil;
+  }
+  id request = send<id>(action, selector("request"));
+  id url = request == nil ? nil : send<id>(request, selector("URL"));
+  id absolute = url == nil ? nil : send<id>(url, selector("absoluteString"));
+  if (request != nil && navigate_new_window_in_place(found->second, utf8_string(absolute))) {
+    send<id, id>(webview, selector("loadRequest:"), request);
+  }
+  return nil;
+}
+
 void navigation_committed(id delegate, SEL, id webview, id) {
   const auto found = g_navigation_views.find(delegate);
   if (found != g_navigation_views.end()) {
@@ -516,6 +538,9 @@ Class ui_delegate_class() {
   class_addMethod(delegate,
       selector("webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:"),
       reinterpret_cast<IMP>(media_permission_decide), "v@:@@@q@");
+  class_addMethod(delegate,
+      selector("webView:createWebViewWithConfiguration:forNavigationAction:windowFeatures:"),
+      reinterpret_cast<IMP>(new_window_requested), "@@:@@@@");
   objc_registerClassPair(delegate);
   return delegate;
 }
@@ -655,6 +680,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(
   }
   g_navigation_trampoline = trampoline;
   g_navigation_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_new_window_callback(
+    NewWindowTrampoline trampoline, void *closure) {
+  if (g_new_window_closure != nullptr) {
+    moonbit_decref(g_new_window_closure);
+  }
+  g_new_window_trampoline = trampoline;
+  g_new_window_closure = closure;
 }
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_protocol_callback(
@@ -1083,6 +1117,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_post_message(uint64_t handl
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using NewWindowTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
                                     moonbit_bytes_t);
@@ -1090,6 +1125,7 @@ using MediaPermissionTrampoline = int32_t (*)(void *, uint64_t, int32_t, moonbit
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_event_callback(EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_new_window_callback(NewWindowTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_protocol_callback(ProtocolTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_media_permission_callback(MediaPermissionTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() { return 0; }

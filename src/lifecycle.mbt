@@ -6,6 +6,7 @@ priv struct Registration {
   navigation_state : NavigationState
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
+  on_new_window : (String) -> NewWindowDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
 
@@ -22,7 +23,8 @@ let custom_schemes_locked : Map[Int, Unit] = Map([])
 fn ensure_native_callbacks() -> Unit {
   if !callback_installation.contains(0) {
     install_native_callbacks(
-      dispatch_native_event, decide_navigation, dispatch_protocol_request, decide_media_permission,
+      dispatch_native_event, decide_navigation, decide_new_window, dispatch_protocol_request,
+      decide_media_permission,
     )
     callback_installation.set(0, ())
   }
@@ -35,6 +37,7 @@ fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
     on_navigation: options.on_navigation,
+    on_new_window: options.on_new_window,
     on_media_permission: options.on_media_permission,
   })
 }
@@ -46,6 +49,7 @@ fn register_ohos_view(handle : UInt64, options : OhosAttachOptions) -> Unit {
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
     on_navigation: allow_navigation,
+    on_new_window: deny_new_window,
     on_media_permission: deny_media_permission,
   })
 }
@@ -80,6 +84,7 @@ fn update_lifecycle(handle : UInt64, lifecycle : WebViewLifecycle) -> Unit {
         navigation_state: registration.navigation_state,
         on_event: registration.on_event,
         on_navigation: registration.on_navigation,
+        on_new_window: registration.on_new_window,
         on_media_permission: registration.on_media_permission,
       })
     None => ()
@@ -134,6 +139,7 @@ fn update_navigation_state(handle : UInt64, event : WebViewEvent) -> Unit {
         navigation_state,
         on_event: registration.on_event,
         on_navigation: registration.on_navigation,
+        on_new_window: registration.on_new_window,
         on_media_permission: registration.on_media_permission,
       })
     }
@@ -148,6 +154,18 @@ fn decide_navigation(handle : UInt64, url : Bytes) -> Int {
       match (registration.on_navigation)(decode_utf8(url)) {
         NavigationDecision::Allow => 1
         NavigationDecision::Deny => 0
+      }
+    None => 0
+  }
+}
+
+///|
+fn decide_new_window(handle : UInt64, url : Bytes) -> Int {
+  match registrations.get(handle) {
+    Some(registration) =>
+      match (registration.on_new_window)(decode_utf8(url)) {
+        NewWindowDecision::Deny => 0
+        NewWindowDecision::NavigateCurrent => 1
       }
     None => 0
   }

@@ -52,6 +52,7 @@ fn native_is_ohos() -> Bool {
 fn install_native_callbacks(
   event_callback : (UInt64, Int, Bytes, Bytes, Int) -> Unit,
   navigation_callback : (UInt64, Bytes) -> Int,
+  new_window_callback : (UInt64, Bytes) -> Int,
   protocol_callback : (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
   media_permission_callback : (UInt64, Int, Bytes) -> Int,
 ) -> Unit {
@@ -66,6 +67,10 @@ fn install_native_callbacks(
       @windows.install_navigation_callback(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
+      )
+      @windows.install_new_window_callback(
+        fn(callback, handle, url) { callback(handle, url) },
+        new_window_callback,
       )
       @windows.install_protocol_callback(
         fn(
@@ -98,6 +103,10 @@ fn install_native_callbacks(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
       )
+      @macos.install_new_window_callback(
+        fn(callback, handle, url) { callback(handle, url) },
+        new_window_callback,
+      )
       @macos.install_protocol_callback(
         fn(
           callback,
@@ -128,6 +137,10 @@ fn install_native_callbacks(
       @linux.install_navigation_callback(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
+      )
+      @linux.install_new_window_callback(
+        fn(callback, handle, url) { callback(handle, url) },
+        new_window_callback,
       )
       @linux.install_protocol_callback(
         fn(

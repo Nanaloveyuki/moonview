@@ -38,6 +38,16 @@ pub(all) enum NavigationDecision {
 } derive(Eq, Debug)
 
 ///|
+/// The decision synchronously returned when page content requests a new
+/// browser window. Moonview never creates a top-level native window itself.
+pub(all) enum NewWindowDecision {
+  /// Reject the request without creating or navigating another WebView.
+  Deny
+  /// Reject the new window and navigate the requesting WebView instead.
+  NavigateCurrent
+} derive(Eq, Debug)
+
+///|
 /// The most recently observed document URL and history availability.
 pub(all) struct NavigationState {
   url : String
@@ -132,6 +142,7 @@ pub(all) struct WebViewOptions {
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
+  on_new_window : (String) -> NewWindowDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
 }
 
@@ -191,6 +202,7 @@ pub fn WebViewOptions::new(
   visible? : Bool = true,
   on_event? : (WebViewEvent) -> Unit = ignore_event,
   on_navigation? : (String) -> NavigationDecision = allow_navigation,
+  on_new_window? : (String) -> NewWindowDecision = deny_new_window,
   on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision = deny_media_permission,
 ) -> WebViewOptions {
   {
@@ -203,6 +215,7 @@ pub fn WebViewOptions::new(
     visible,
     on_event,
     on_navigation,
+    on_new_window,
     on_media_permission,
   }
 }
@@ -215,6 +228,11 @@ fn ignore_event(_event : WebViewEvent) -> Unit {
 ///|
 fn allow_navigation(_url : String) -> NavigationDecision {
   NavigationDecision::Allow
+}
+
+///|
+fn deny_new_window(_url : String) -> NewWindowDecision {
+  NewWindowDecision::Deny
 }
 
 ///|

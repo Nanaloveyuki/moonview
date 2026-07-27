@@ -39,7 +39,8 @@ same UI thread; Moonview does not provide a cross-thread dispatcher.
 
 This raw-handle boundary is intentional so a window-management library can own
 native window creation and event dispatch. Popup and `window.open` requests are
-denied by default.
+denied by default. A host can instead redirect an individual request into the
+existing WebView; Moonview never creates a top-level window for page content.
 
 ## Create A WebView
 
@@ -57,6 +58,7 @@ let options = @moonview.WebViewOptions::new(
     _ => ()
   },
   on_navigation=_url => @moonview.NavigationDecision::Allow,
+  on_new_window=_url => @moonview.NewWindowDecision::Deny,
 )
 
 match @moonview.WebView::create(parent_handle, options) {
