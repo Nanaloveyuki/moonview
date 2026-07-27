@@ -388,6 +388,10 @@ bool finish_protocol(View *view, const std::string &request_id, int32_t status,
   for (const auto &header : decoded_headers) {
     soup_message_headers_append(response_headers, header.first.c_str(), header.second.c_str());
   }
+  const char *content_type = soup_message_headers_get_one(response_headers, "Content-Type");
+  if (content_type != nullptr) {
+    webkit_uri_scheme_response_set_content_type(response, content_type);
+  }
   webkit_uri_scheme_response_set_http_headers(response, response_headers);
   soup_message_headers_unref(response_headers);
   webkit_uri_scheme_request_finish_with_response(pending.request, response);
@@ -395,6 +399,25 @@ bool finish_protocol(View *view, const std::string &request_id, int32_t status,
   g_object_unref(stream);
   g_object_unref(pending.request);
   return true;
+}
+
+struct QueuedProtocolResponse {
+  uint64_t handle = 0;
+  std::string request_id;
+  int32_t status = 0;
+  std::string headers;
+  std::string body;
+};
+
+gboolean finish_queued_protocol_response(gpointer data) {
+  auto *response = static_cast<QueuedProtocolResponse *>(data);
+  finish_protocol(find_view(response->handle), response->request_id, response->status,
+                  response->headers, response->body);
+  return G_SOURCE_REMOVE;
+}
+
+void destroy_queued_protocol_response(gpointer data) {
+  delete static_cast<QueuedProtocolResponse *>(data);
 }
 
 struct ProtocolTimeout {
@@ -584,8 +607,21 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_lock_custom_schemes() {
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_respond_protocol(
     uint64_t handle, moonbit_bytes_t request_id, int32_t status,
     moonbit_bytes_t headers, moonbit_bytes_t body) {
-  return finish_protocol(find_view(handle), bytes_to_utf8(request_id), status,
-                         bytes_to_utf8(headers), bytes_to_utf8(body)) ? 1 : 0;
+  View *view = find_view(handle);
+  const std::string id = bytes_to_utf8(request_id);
+  if (view == nullptr || view->pending_protocols.find(id) == view->pending_protocols.end()) {
+    return 0;
+  }
+  auto *response = new QueuedProtocolResponse{
+      handle,
+      id,
+      status,
+      bytes_to_utf8(headers),
+      bytes_to_utf8(body),
+  };
+  g_idle_add_full(G_PRIORITY_DEFAULT, finish_queued_protocol_response, response,
+                  destroy_queued_protocol_response);
+  return 1;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() {
