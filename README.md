@@ -83,6 +83,8 @@ match @moonview.WebView::create(parent_handle, options) {
 `Ready` and `CreationFailed` are asynchronous events. An initialization script
 configured in `WebViewOptions` is installed before the first document loads;
 `add_init_script` applies to documents loaded after it is registered.
+`user_agent` configures the engine before its first document, and
+`set_zoom_factor` accepts positive page zoom values.
 
 ## Validation
 

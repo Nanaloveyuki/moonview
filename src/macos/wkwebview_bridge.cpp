@@ -422,7 +422,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() {
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
-    moonbit_bytes_t initialization_script) {
+    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
   if (!is_main_thread()) {
     return 0;
   }
@@ -460,6 +460,12 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     release_object(view->message_delegate);
     release_object(view->content_manager);
     return 0;
+  }
+  const std::string configured_user_agent = bytes_to_utf8(user_agent);
+  if (!configured_user_agent.empty()) {
+    id agent = string_object(configured_user_agent);
+    send<void, id>(view->webview, selector("setCustomUserAgent:"), agent);
+    release_object(agent);
   }
   send<void, id>(view->webview, selector("setNavigationDelegate:"), view->navigation_delegate);
   add_document_script(view.get(), bridge_script());
@@ -598,6 +604,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_init(uint64_t handle,
   }
 }
 
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_zoom(uint64_t handle,
+                                                              double factor) {
+  View *view = find_view(handle);
+  if (view != nullptr) {
+    send<void, CGFloat>(view->webview, selector("setPageZoom:"),
+                        static_cast<CGFloat>(factor));
+  }
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -634,7 +649,7 @@ using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_event_callback(EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_install_navigation_callback(NavigationTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) {}
@@ -647,6 +662,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_stop(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_init(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_zoom(uint64_t, double) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_post_message(uint64_t, moonbit_bytes_t) {}
 

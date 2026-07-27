@@ -22,7 +22,7 @@ pub extern "C" fn install_navigation_callback(
 
 ///|
 /// Starts creation in a caller-owned `NSView*` container on the main thread.
-#borrow(initial_url, initial_html, initialization_script)
+#borrow(initial_url, initial_html, initialization_script, user_agent)
 pub extern "C" fn create(
   parent : UInt64,
   x : Int,
@@ -32,6 +32,7 @@ pub extern "C" fn create(
   initial_url : Bytes,
   initial_html : Bytes,
   initialization_script : Bytes,
+  user_agent : Bytes,
 ) -> UInt64 = "moonview_macos_create"
 
 ///|
@@ -78,6 +79,9 @@ pub extern "C" fn go_forward(view : UInt64) -> Unit = "moonview_macos_go_forward
 ///|
 #borrow(script)
 pub extern "C" fn add_init_script(view : UInt64, script : Bytes) -> Unit = "moonview_macos_init"
+
+///|
+pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Unit = "moonview_macos_set_zoom"
 
 ///|
 #borrow(script, request_id)

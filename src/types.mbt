@@ -63,6 +63,7 @@ pub(all) struct WebViewOptions {
   initial_url : String
   initial_html : String
   initialization_script : String
+  user_agent : String
   visible : Bool
   on_event : (WebViewEvent) -> Unit
   on_navigation : (String) -> NavigationDecision
@@ -79,6 +80,7 @@ pub fn WebViewOptions::new(
   initial_url? : String = "",
   initial_html? : String = "",
   initialization_script? : String = "",
+  user_agent? : String = "",
   visible? : Bool = true,
   on_event? : (WebViewEvent) -> Unit = ignore_event,
   on_navigation? : (String) -> NavigationDecision = allow_navigation,
@@ -88,6 +90,7 @@ pub fn WebViewOptions::new(
     initial_url,
     initial_html,
     initialization_script,
+    user_agent,
     visible,
     on_event,
     on_navigation,

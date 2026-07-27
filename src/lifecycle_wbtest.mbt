@@ -102,3 +102,25 @@ test "navigation decisions are isolated per view and deny unknown views" {
   unregister_view(denied)
   assert_eq(decide_navigation(allowed, url), 0)
 }
+
+///|
+test "options preserve the configured user agent" {
+  let options = WebViewOptions::new(
+    bounds=Rect::new(x=0, y=0, width=1, height=1),
+    user_agent="moonview-test/1.0",
+  )
+  assert_eq(options.user_agent, "moonview-test/1.0")
+}
+
+///|
+test "zoom factors must be positive" {
+  let view = WebView::{ handle: 9010 }
+  assert_eq(
+    view.set_zoom_factor(0.0),
+    Err(
+      WebViewError::NativeFailure(
+        0, "WebView zoom factor must be greater than zero",
+      ),
+    ),
+  )
+}

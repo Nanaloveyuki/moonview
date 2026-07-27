@@ -34,6 +34,7 @@ pub fn WebView::create(
       encode_utf8(options.initial_url),
       encode_utf8(options.initial_html),
       encode_utf8(options.initialization_script),
+      encode_utf8(options.user_agent),
     )
     if handle == 0 {
       Err(WebViewError::CreateRejected)
@@ -119,6 +120,23 @@ pub fn WebView::add_init_script(
   script : String,
 ) -> Result[Unit, WebViewError] {
   self.with_handle(handle => native_add_init_script(handle, encode_utf8(script)))
+}
+
+///|
+/// Sets the page zoom factor. Values must be greater than zero.
+pub fn WebView::set_zoom_factor(
+  self : WebView,
+  factor : Double,
+) -> Result[Unit, WebViewError] {
+  if factor <= 0.0 {
+    Err(
+      WebViewError::NativeFailure(
+        0, "WebView zoom factor must be greater than zero",
+      ),
+    )
+  } else {
+    self.with_handle(handle => native_set_zoom(handle, factor))
+  }
 }
 
 ///|

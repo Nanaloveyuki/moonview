@@ -40,7 +40,7 @@ pub extern "C" fn install_navigation_callback(
 
 ///|
 /// takes precedence over `url`.
-#borrow(url, html, initialization_script)
+#borrow(url, html, initialization_script, user_agent)
 pub extern "C" fn create(
   hwnd : UInt64,
   x : Int,
@@ -50,6 +50,7 @@ pub extern "C" fn create(
   url : Bytes,
   html : Bytes,
   initialization_script : Bytes,
+  user_agent : Bytes,
 ) -> UInt64 = "moonview_windows_create"
 
 ///|
@@ -97,6 +98,9 @@ pub extern "C" fn go_forward(view : UInt64) -> Unit = "moonview_windows_go_forwa
 ///|
 #borrow(script)
 pub extern "C" fn add_init_script(view : UInt64, script : Bytes) -> Unit = "moonview_windows_init"
+
+///|
+pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Unit = "moonview_windows_set_zoom"
 
 ///|
 #borrow(script, request_id)

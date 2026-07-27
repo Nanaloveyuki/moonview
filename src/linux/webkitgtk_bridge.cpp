@@ -270,7 +270,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() {
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
-    moonbit_bytes_t initialization_script) {
+    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
   if (!gtk_init_check(nullptr, nullptr)) {
     return 0;
   }
@@ -289,6 +289,11 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   }
   view->webview = WEBKIT_WEB_VIEW(webkit_web_view_new_with_user_content_manager(
       view->content_manager));
+  const std::string configured_user_agent = bytes_to_utf8(user_agent);
+  if (!configured_user_agent.empty()) {
+    WebKitSettings *settings = webkit_web_view_get_settings(view->webview);
+    webkit_settings_set_user_agent(settings, configured_user_agent.c_str());
+  }
   add_document_script(view.get(), bridge_script());
   add_document_script(view.get(), bytes_to_utf8(initialization_script));
   view->initial_url = bytes_to_utf8(initial_url);
@@ -406,6 +411,14 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_init(uint64_t handle,
   }
 }
 
+extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_zoom(uint64_t handle,
+                                                              double factor) {
+  View *view = find_view(handle);
+  if (view != nullptr) {
+    webkit_web_view_set_zoom_level(view->webview, factor);
+  }
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -442,7 +455,7 @@ using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_event_callback(EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_navigation_callback(NavigationTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) {}
@@ -455,6 +468,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_stop(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_go_back(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_init(uint64_t, moonbit_bytes_t) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_zoom(uint64_t, double) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_post_message(uint64_t, moonbit_bytes_t) {}
 
