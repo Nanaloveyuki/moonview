@@ -73,10 +73,6 @@ pub fn WebView::create_in_context(
           return Err(WebViewError::CreateRejected)
         }
         ensure_native_callbacks()
-        if !custom_schemes_locked.contains(0) {
-          native_lock_custom_schemes()
-          custom_schemes_locked.set(0, ())
-        }
         let handle = native_create(
           context.id,
           context.storage == WebContextStorage::Ephemeral,
@@ -94,6 +90,10 @@ pub fn WebView::create_in_context(
         if handle == 0 {
           Err(WebViewError::CreateRejected)
         } else {
+          if should_lock_custom_schemes(handle) {
+            native_lock_custom_schemes()
+            custom_schemes_locked.set(0, ())
+          }
           register_view(handle, options)
           let view = WebView::{ handle, owner_thread }
           if !options.visible {
@@ -105,6 +105,17 @@ pub fn WebView::create_in_context(
       }
     }
   }
+}
+
+///|
+fn should_lock_custom_schemes(handle : UInt64) -> Bool {
+  handle != 0UL && !custom_schemes_locked.contains(0)
+}
+
+///|
+test "custom scheme configuration waits for a successful create" {
+  assert_eq(should_lock_custom_schemes(0UL), false)
+  assert_eq(should_lock_custom_schemes(1UL), true)
 }
 
 ///|

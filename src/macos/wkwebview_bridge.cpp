@@ -640,21 +640,40 @@ Class scheme_handler_class() {
   return handler;
 }
 
+bool load_url(View *view, const std::string &text) {
+  if (view == nullptr || text.empty()) {
+    return false;
+  }
+  id value = string_object(text);
+  if (value == nil) {
+    return false;
+  }
+  id url = send<id>(class_object("NSURL"), selector("alloc"));
+  url = send<id, id>(url, selector("initWithString:"), value);
+  release_object(value);
+  if (url == nil) {
+    return false;
+  }
+  id request = send<id>(class_object("NSURLRequest"), selector("alloc"));
+  request = send<id, id>(request, selector("initWithURL:"), url);
+  release_object(url);
+  if (request == nil) {
+    return false;
+  }
+  send<id, id>(view->webview, selector("loadRequest:"), request);
+  release_object(request);
+  return true;
+}
+
 void load_initial_content(View *view) {
   if (!view->initial_html.empty()) {
     id html = string_object(view->initial_html);
     send<id, id, id>(view->webview, selector("loadHTMLString:baseURL:"), html, nil);
     release_object(html);
   } else if (!view->initial_url.empty()) {
-    id text = string_object(view->initial_url);
-    id url = send<id>(class_object("NSURL"), selector("alloc"));
-    url = send<id, id>(url, selector("initWithString:"), text);
-    id request = send<id>(class_object("NSURLRequest"), selector("alloc"));
-    request = send<id, id>(request, selector("initWithURL:"), url);
-    send<id, id>(view->webview, selector("loadRequest:"), request);
-    release_object(request);
-    release_object(url);
-    release_object(text);
+    if (!load_url(view, view->initial_url)) {
+      emit_event(view, kNavigationCompleted, view->initial_url, "Invalid initial URL", 1);
+    }
   }
 }
 
@@ -987,16 +1006,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_navigate(uint64_t handle,
     return 0;
   }
   const std::string text = bytes_to_utf8(url);
-  id value = string_object(text);
-  id native_url = send<id>(class_object("NSURL"), selector("alloc"));
-  native_url = send<id, id>(native_url, selector("initWithString:"), value);
-  id request = send<id>(class_object("NSURLRequest"), selector("alloc"));
-  request = send<id, id>(request, selector("initWithURL:"), native_url);
-  send<id, id>(view->webview, selector("loadRequest:"), request);
-  release_object(request);
-  release_object(native_url);
-  release_object(value);
-  return 1;
+  return load_url(view, text) ? 1 : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_load_html(uint64_t handle,
