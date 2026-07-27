@@ -7,11 +7,20 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   native:
     runs-on: ubuntu-latest
     container: fedora:latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Install native dependencies
@@ -27,9 +36,31 @@ jobs:
             xorg-x11-server-Xvfb
       - name: Install MoonBit
         run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      - name: Show tool versions
+        run: |
+          "$HOME/.moon/bin/moon" version --all
       - name: Update MoonBit registry
-        run: "$HOME/.moon/bin/moon update"
+        run: |
+          "$HOME/.moon/bin/moon" update
       - name: Install MoonBit dependencies
-        run: "$HOME/.moon/bin/moon install"
+        run: |
+          "$HOME/.moon/bin/moon" install
+      - name: Check formatting and exported interfaces
+        shell: bash
+        run: |
+          interface_fingerprint() {
+            find src -name pkg.generated.mbti -print0 | sort -z | while IFS= read -r -d '' file; do
+              printf '%s\n' "$file"
+              sed '/^[[:space:]]*$/d' "$file"
+            done | sha256sum
+          }
+          "$HOME/.moon/bin/moon" fmt --check
+          before="$(interface_fingerprint)"
+          "$HOME/.moon/bin/moon" info --target native
+          after="$(interface_fingerprint)"
+          if [ "$before" != "$after" ]; then
+            echo "Generated MoonBit interfaces are stale. Run moon info and commit the semantic changes."
+            exit 1
+          fi
       - name: Run WebKitGTK tests and smoke
         run: xvfb-run -a sh scripts/test-linux.sh

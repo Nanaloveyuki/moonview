@@ -7,10 +7,19 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   native:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Install MoonBit
@@ -20,23 +29,42 @@ jobs:
         shell: pwsh
         run: |
           "$HOME\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Show tool versions
+        shell: pwsh
+        run: moon version --all
       - name: Update MoonBit registry
         shell: pwsh
         run: moon update
       - name: Install MoonBit dependencies
         shell: pwsh
         run: moon install
+      - name: Restore WebView2 SDK cache
+        id: webview2-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/moonview-webview2-sdk
+          key: webview2-sdk-1.0.4078.44-x64
       - name: Download WebView2 SDK
+        if: steps.webview2-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $archive = Join-Path $env:RUNNER_TEMP "webview2-sdk.zip"
-          $destination = Join-Path $env:RUNNER_TEMP "webview2-sdk"
+          $destination = Join-Path $env:RUNNER_TEMP "moonview-webview2-sdk"
           Invoke-WebRequest `
             https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.4078.44 `
             -OutFile $archive
           Expand-Archive -Path $archive -DestinationPath $destination
-          "MOONVIEW_WEBVIEW2_SDK_DIR=$destination" | Out-File `
+      - name: Configure WebView2 SDK
+        shell: pwsh
+        run: |
+          "MOONVIEW_WEBVIEW2_SDK_DIR=$env:RUNNER_TEMP\moonview-webview2-sdk" | Out-File `
             -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Check formatting and exported interfaces
+        shell: pwsh
+        run: |
+          moon fmt --check
+          moon info --target native
+          git diff --exit-code --ignore-blank-lines
       - name: Run WebView2 tests and smoke
         shell: pwsh
         run: .\\scripts\\test-windows.ps1 -WebView2Sdk $env:MOONVIEW_WEBVIEW2_SDK_DIR

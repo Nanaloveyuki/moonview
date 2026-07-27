@@ -7,20 +7,36 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   native:
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Install MoonBit
         run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Show tool versions
+        run: moon version --all
       - name: Update MoonBit registry
         run: moon update
       - name: Install MoonBit dependencies
         run: moon install
+      - name: Check formatting and exported interfaces
+        run: |
+          moon fmt --check
+          moon info --target native
+          git diff --exit-code --ignore-blank-lines
       - name: Check native packages
         run: moon check --target native
       - name: Compile and run package tests
