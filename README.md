@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-alpha.1
+moon add Nanaloveyuki/moonview@0.1.0-beta.3
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -233,11 +233,12 @@ unsupported on older platform runtimes.
   `MOONVIEW_OHOS_ARKWEB_INCLUDE` and `MOONVIEW_OHOS_ARKWEB_LIB`. Moonview
   does not vendor or read SDK files from `ref/`.
 - Android (experimental): import `Nanaloveyuki/moonview/android`, which depends
-  only on `Nanaloveyuki/ajni/webview@0.1.1`. Attach ajni's Kotlin host to an
-  Activity-owned `FrameLayout` before creating a view, and set
-  `MOONVIEW_NATIVE_BACKEND=android` for the MoonBit build. See
-  `src/android/README.mbt.md` for the required CMake integration and the
-  intentionally limited initial capability set.
+  only on the optional `Nanaloveyuki/ajni/webview` feature. Attach ajni's Kotlin
+  host to an Activity-owned `FrameLayout` before creating a view, and set
+  `MOONVIEW_NATIVE_BACKEND=android` for the MoonBit build. The adapter provides
+  a single HTTPS asset origin, document-start scripts, structured page messages,
+  asynchronous asset responses, operation-correlated errors, and resource
+  limits. See `src/android/README.mbt.md` for CMake integration and usage.
 
 ## Verify A Checkout
 
@@ -257,5 +258,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-alpha.1` is an API preview. Compatibility may change before stable
+`0.1.0-beta.3` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.
