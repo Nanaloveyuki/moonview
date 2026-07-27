@@ -24,3 +24,5 @@ jobs:
         run: moon test --target native
       - name: Probe WKWebView runtime
         run: moon run src/examples/macos_probe --target native
+      - name: Run WKWebView lifecycle smoke
+        run: moon run src/examples/macos_smoke --target native
