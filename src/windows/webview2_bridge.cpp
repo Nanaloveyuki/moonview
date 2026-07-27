@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <unknwn.h>
 #include <WebView2.h>
+#include <WebView2EnvironmentOptions.h>
 #include <wrl.h>
 
 #include <atomic>
@@ -36,6 +37,7 @@ enum EventKind : int32_t {
   kDocumentTitleChanged = 7,
   kHistoryChanged = 8,
   kScriptCompleted = 9,
+  kProtocolCancelled = 10,
 };
 
 typedef void (*EventTrampoline)(void *closure, uint64_t view, int32_t kind,
@@ -79,6 +81,21 @@ std::wstring utf8_to_wide(const std::string &value) {
   MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(),
                       static_cast<int>(value.size()), &result[0], length);
   return result;
+}
+
+bool utf8_to_wide_checked(const std::string &value, std::wstring *result) {
+  if (value.empty()) {
+    result->clear();
+    return true;
+  }
+  const int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(),
+                                         static_cast<int>(value.size()), nullptr, 0);
+  if (length <= 0) {
+    return false;
+  }
+  result->assign(static_cast<size_t>(length), L'\0');
+  return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(),
+                             static_cast<int>(value.size()), &(*result)[0], length) == length;
 }
 
 std::string wide_to_utf8(const wchar_t *value) {
@@ -128,6 +145,7 @@ struct ThreadEnvironment {
   DWORD thread_id = 0;
   bool creating = false;
   HRESULT failure = S_OK;
+  ComPtr<ICoreWebView2EnvironmentOptions> options;
   ComPtr<ICoreWebView2Environment> environment;
 };
 
@@ -171,10 +189,9 @@ int32_t navigation_allowed(const std::shared_ptr<View> &view, const std::string 
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(uri));
 }
 
-std::shared_ptr<View> find_view(uint64_t handle) {
-  const auto it = g_views.find(handle);
-  return it == g_views.end() ? nullptr : it->second;
-}
+void fail_waiting_views(DWORD thread_id, HRESULT result, const char *operation);
+
+#include "webview2_protocol.inc"
 
 bool runtime_available() {
   LPWSTR version = nullptr;
@@ -295,6 +312,7 @@ void install_handlers(const std::shared_ptr<View> &view) {
   }
   const std::weak_ptr<View> weak_view = view;
   EventRegistrationToken token{};
+  install_protocol_handlers(view, &token);
   view->webview->add_WebMessageReceived(
       Callback<ICoreWebView2WebMessageReceivedEventHandler>(
           [weak_view](ICoreWebView2 *, ICoreWebView2WebMessageReceivedEventArgs *args) -> HRESULT {
@@ -571,9 +589,12 @@ void ensure_environment(DWORD thread_id) {
     fail_waiting_views(thread_id, state.failure, "WebView2 Runtime discovery");
     return;
   }
+  if (!configure_protocol_environment_options(state)) {
+    return;
+  }
   state.creating = true;
   const HRESULT start = CreateCoreWebView2EnvironmentWithOptions(
-      nullptr, nullptr, nullptr,
+      nullptr, nullptr, state.options.Get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [thread_id](HRESULT result, ICoreWebView2Environment *environment) -> HRESULT {
             auto state_it = g_environments.find(thread_id);
@@ -588,6 +609,7 @@ void ensure_environment(DWORD thread_id) {
               return S_OK;
             }
             completed.environment = environment;
+            completed.options.Reset();
             create_waiting_controllers(thread_id);
             return S_OK;
           })
@@ -627,6 +649,64 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
   }
   g_navigation_trampoline = trampoline;
   g_navigation_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_protocol_callback(
+    ProtocolTrampoline trampoline, void *closure) {
+  if (g_protocol_closure != nullptr) {
+    moonbit_decref(g_protocol_closure);
+  }
+  g_protocol_trampoline = trampoline;
+  g_protocol_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_media_permission_callback(
+    MediaPermissionTrampoline trampoline, void *closure) {
+  if (g_media_permission_closure != nullptr) {
+    moonbit_decref(g_media_permission_closure);
+  }
+  g_media_permission_trampoline = trampoline;
+  g_media_permission_closure = closure;
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_register_custom_scheme(
+    moonbit_bytes_t name) {
+  std::string scheme = bytes_to_utf8(name);
+  for (char &character : scheme) {
+    if (character >= 'A' && character <= 'Z') {
+      character = static_cast<char>(character - 'A' + 'a');
+    }
+  }
+  if (g_custom_schemes_locked || !valid_scheme(scheme)) {
+    return 0;
+  }
+  const std::wstring wide_scheme = utf8_to_wide(scheme);
+  for (const std::wstring &registered : g_custom_schemes) {
+    if (registered == wide_scheme) {
+      return 1;
+    }
+  }
+  g_custom_schemes.push_back(wide_scheme);
+  return 1;
+}
+
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_lock_custom_schemes() {
+  g_custom_schemes_locked = true;
+}
+
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_respond_protocol(
+    uint64_t view_handle, moonbit_bytes_t request_id, int32_t status,
+    moonbit_bytes_t headers, moonbit_bytes_t body) {
+  const std::string id = bytes_to_utf8(request_id);
+  const auto pending_it = g_pending_protocols.find(id);
+  if (pending_it == g_pending_protocols.end() ||
+      pending_it->second->view_handle != view_handle || status < 100 || status > 599) {
+    return 0;
+  }
+  return complete_protocol_response(id, status, bytes_to_utf8(headers),
+                                    bytes_to_utf8(body))
+             ? 1
+             : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() {
@@ -695,6 +775,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t handle) 
                RPC_E_WRONG_THREAD);
     return 0;
   }
+  cancel_protocol_requests_for_view(handle);
   view->destroyed = true;
   if (view->controller) {
     view->controller->Close();
@@ -708,6 +789,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t handle) 
     const auto environment_it = g_environments.find(thread_id);
     if (environment_it != g_environments.end()) {
       environment_it->second.environment.Reset();
+      environment_it->second.options.Reset();
       g_environments.erase(environment_it);
     }
   }
@@ -822,11 +904,26 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_post_message(uint64_t handle
 using EventTrampoline = void (*)(void *, uint64_t, int32_t, moonbit_bytes_t,
                                  moonbit_bytes_t, int32_t);
 using NavigationTrampoline = int32_t (*)(void *, uint64_t, moonbit_bytes_t);
+using ProtocolTrampoline = void (*)(void *, uint64_t, moonbit_bytes_t,
+                                    moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t, moonbit_bytes_t,
+                                    moonbit_bytes_t);
+using MediaPermissionTrampoline = int32_t (*)(void *, uint64_t, int32_t,
+                                              moonbit_bytes_t);
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_event_callback(
     EventTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_navigation_callback(
     NavigationTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_protocol_callback(
+    ProtocolTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_install_media_permission_callback(
+    MediaPermissionTrampoline, void *) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_register_custom_scheme(
+    moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT void moonview_windows_lock_custom_schemes() {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_respond_protocol(
+    uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t,

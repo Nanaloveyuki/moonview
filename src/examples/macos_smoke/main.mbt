@@ -20,14 +20,7 @@ struct Smoke {
 fn Smoke::start(self : Smoke, parent_handle : UInt64) -> Unit {
   let options = @moonview.WebViewOptions::new(
     bounds=@moonview.Rect::new(x=0, y=0, width=640, height=480),
-    initial_html=(
-      #|<!doctype html><title>moonview macOS smoke</title><script>
-      #|window.moonview.onmessage = event => {
-      #|  if (event.data === 'host-ping') window.moonview.postMessage('page-ack');
-      #|};
-      #|window.moonview.postMessage('page-ready');
-      #|</script>
-    ),
+    initial_url="moonview://app/index.html",
     initialization_script="window.__moonview_initialized = true;",
     user_agent="moonview-smoke/0.1",
     on_event=event => self.handle_event(event),
@@ -43,6 +36,8 @@ fn Smoke::start(self : Smoke, parent_handle : UInt64) -> Unit {
 fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
   match event {
     @moonview.WebViewEvent::Ready => println("moonview macOS smoke: ready")
+    @moonview.WebViewEvent::ProtocolRequest(request) =>
+      self.respond_protocol(request)
     @moonview.WebViewEvent::PageMessage("page-ready") => self.post_ping()
     @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
     @moonview.WebViewEvent::ScriptResult(request_id, value) =>
@@ -53,6 +48,39 @@ fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
     @moonview.WebViewEvent::CreationFailed(_error) => ()
     @moonview.WebViewEvent::ScriptFailed(_request_id, _error) => ()
     _ => ()
+  }
+}
+
+///|
+fn Smoke::respond_protocol(
+  self : Smoke,
+  request : @moonview.ProtocolRequest,
+) -> Unit {
+  match self.view {
+    Some(view) =>
+      ignore(
+        view.respond_protocol(
+          request.id,
+          @moonview.ProtocolResponse::new(
+            status=200,
+            headers=[
+              @moonview.HttpHeader::new(name="Content-Type", value="text/html"),
+            ],
+            body=@utf8.encode(
+              (
+                #|<!doctype html><title>moonview macOS smoke</title><script>
+                #|window.moonview.onmessage = event => {
+                #|  if (event.data === 'host-ping') window.moonview.postMessage('page-ack');
+                #|};
+                #|window.moonview.postMessage('page-ready');
+                #|</script>
+              )[:],
+              bom=false,
+            ),
+          ),
+        ),
+      )
+    None => ()
   }
 }
 
@@ -95,6 +123,10 @@ fn Smoke::finish(self : Smoke) -> Unit {
 
 ///|
 fn main {
+  match @moonview.register_custom_scheme("moonview") {
+    Ok(_) => ()
+    Err(_) => abort("moonview macOS smoke: scheme registration failed")
+  }
   let parent_handle = create_host(640, 480)
   if parent_handle == 0UL {
     abort("moonview macOS smoke: unable to create AppKit host")

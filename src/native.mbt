@@ -29,6 +29,8 @@ fn native_available() -> Bool {
 fn install_native_callbacks(
   event_callback : (UInt64, Int, Bytes, Bytes, Int) -> Unit,
   navigation_callback : (UInt64, Bytes) -> Int,
+  protocol_callback : (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
+  media_permission_callback : (UInt64, Int, Bytes) -> Int,
 ) -> Unit {
   match active_backend() {
     NativeBackend::Windows => {
@@ -42,6 +44,25 @@ fn install_native_callbacks(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
       )
+      @windows.install_protocol_callback(
+        fn(
+          callback,
+          handle,
+          request_id,
+          scheme,
+          http_method,
+          uri,
+          headers,
+          body,
+        ) {
+          callback(handle, request_id, scheme, http_method, uri, headers, body)
+        },
+        protocol_callback,
+      )
+      @windows.install_media_permission_callback(
+        fn(callback, handle, kind, origin) { callback(handle, kind, origin) },
+        media_permission_callback,
+      )
     }
     NativeBackend::MacOS => {
       @macos.install_event_callback(
@@ -53,6 +74,25 @@ fn install_native_callbacks(
       @macos.install_navigation_callback(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
+      )
+      @macos.install_protocol_callback(
+        fn(
+          callback,
+          handle,
+          request_id,
+          scheme,
+          http_method,
+          uri,
+          headers,
+          body,
+        ) {
+          callback(handle, request_id, scheme, http_method, uri, headers, body)
+        },
+        protocol_callback,
+      )
+      @macos.install_media_permission_callback(
+        fn(callback, handle, kind, origin) { callback(handle, kind, origin) },
+        media_permission_callback,
       )
     }
     NativeBackend::Linux => {
@@ -66,8 +106,66 @@ fn install_native_callbacks(
         fn(callback, handle, url) { callback(handle, url) },
         navigation_callback,
       )
+      @linux.install_protocol_callback(
+        fn(
+          callback,
+          handle,
+          request_id,
+          scheme,
+          http_method,
+          uri,
+          headers,
+          body,
+        ) {
+          callback(handle, request_id, scheme, http_method, uri, headers, body)
+        },
+        protocol_callback,
+      )
+      @linux.install_media_permission_callback(
+        fn(callback, handle, kind, origin) { callback(handle, kind, origin) },
+        media_permission_callback,
+      )
     }
     NativeBackend::Unsupported => ()
+  }
+}
+
+///|
+fn native_register_custom_scheme(name : Bytes) -> Int {
+  match active_backend() {
+    NativeBackend::Windows => @windows.register_custom_scheme(name)
+    NativeBackend::MacOS => @macos.register_custom_scheme(name)
+    NativeBackend::Linux => @linux.register_custom_scheme(name)
+    NativeBackend::Unsupported => 0
+  }
+}
+
+///|
+fn native_lock_custom_schemes() -> Unit {
+  match active_backend() {
+    NativeBackend::Windows => @windows.lock_custom_schemes()
+    NativeBackend::MacOS => @macos.lock_custom_schemes()
+    NativeBackend::Linux => @linux.lock_custom_schemes()
+    NativeBackend::Unsupported => ()
+  }
+}
+
+///|
+fn native_respond_protocol(
+  handle : UInt64,
+  request_id : Bytes,
+  status : Int,
+  headers : Bytes,
+  body : Bytes,
+) -> Int {
+  match active_backend() {
+    NativeBackend::Windows =>
+      @windows.respond_protocol(handle, request_id, status, headers, body)
+    NativeBackend::MacOS =>
+      @macos.respond_protocol(handle, request_id, status, headers, body)
+    NativeBackend::Linux =>
+      @linux.respond_protocol(handle, request_id, status, headers, body)
+    NativeBackend::Unsupported => 0
   }
 }
 

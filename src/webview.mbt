@@ -11,6 +11,28 @@ pub fn available() -> Bool {
 }
 
 ///|
+/// Registers an application-owned custom URL scheme for the process.
+///
+/// Call this before the first successful `WebView::create`. Native handlers
+/// have a 30-second response deadline; unanswered requests are cancelled by
+/// the backend and reported as `ProtocolCancelled`.
+pub fn register_custom_scheme(name : String) -> Result[Unit, WebViewError] {
+  if custom_schemes_locked.contains(0) {
+    Err(WebViewError::ConfigurationLocked)
+  } else if name.length() == 0 {
+    Err(WebViewError::NativeFailure(0, "Custom scheme name must not be empty"))
+  } else if native_register_custom_scheme(encode_utf8(name)) != 0 {
+    Ok(())
+  } else {
+    Err(
+      WebViewError::Unsupported(
+        "Custom schemes are unavailable on this backend",
+      ),
+    )
+  }
+}
+
+///|
 /// Starts asynchronous creation of a WebView child view in `parent_handle`.
 ///
 /// The caller must keep the native parent container alive and run its UI event
@@ -25,6 +47,10 @@ pub fn WebView::create(
     Err(WebViewError::Unavailable)
   } else {
     ensure_native_callbacks()
+    if !custom_schemes_locked.contains(0) {
+      native_lock_custom_schemes()
+      custom_schemes_locked.set(0, ())
+    }
     let handle = native_create(
       parent_handle,
       options.bounds.x,
@@ -201,6 +227,37 @@ pub fn WebView::post_message(
   message : String,
 ) -> Result[Unit, WebViewError] {
   self.with_handle(handle => native_post_message(handle, encode_utf8(message)))
+}
+
+///|
+/// Completes a pending custom-scheme request. The request ID is valid only
+/// until the native backend's 30-second response deadline expires.
+pub fn WebView::respond_protocol(
+  self : WebView,
+  request_id : String,
+  response : ProtocolResponse,
+) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ =>
+      if native_respond_protocol(
+          self.handle,
+          encode_utf8(request_id),
+          response.status,
+          encode_http_headers(response.headers),
+          response.body,
+        ) !=
+        0 {
+        Ok(())
+      } else {
+        Err(
+          WebViewError::NativeFailure(
+            0, "Protocol request is no longer pending",
+          ),
+        )
+      }
+  }
 }
 
 ///|

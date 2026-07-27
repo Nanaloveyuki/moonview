@@ -20,17 +20,7 @@ struct Smoke {
 fn Smoke::start(self : Smoke, hwnd : UInt64) -> Unit {
   let options = @moonview.WebViewOptions::new(
     bounds=@moonview.Rect::new(x=0, y=0, width=640, height=480),
-    initial_html=(
-      #|<!doctype html>
-      #|<meta charset="utf-8">
-      #|<title>moonview smoke</title>
-      #|<script>
-      #|  window.addEventListener("DOMContentLoaded", () => {
-      #|    window.moonview.postMessage("page-ready");
-      #|  });
-      #|</script>
-      #|<body>moonview smoke</body>
-    ),
+    initial_url="moonview://app/index.html",
     initialization_script=(
       #|window.moonview.onmessage = function (message) {
       #|  if (message === "host-ping") window.moonview.postMessage("page-ack");
@@ -53,6 +43,8 @@ fn Smoke::start(self : Smoke, hwnd : UInt64) -> Unit {
 fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
   match event {
     @moonview.WebViewEvent::Ready => println("moonview smoke: ready")
+    @moonview.WebViewEvent::ProtocolRequest(request) =>
+      self.respond_protocol(request)
     @moonview.WebViewEvent::PageMessage("page-ready") => self.post_ping()
     @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
     @moonview.WebViewEvent::ScriptResult(request_id, value) => {
@@ -80,6 +72,42 @@ fn Smoke::handle_event(self : Smoke, event : @moonview.WebViewEvent) -> Unit {
       close_host_window()
     }
     _ => ()
+  }
+}
+
+///|
+fn Smoke::respond_protocol(
+  self : Smoke,
+  request : @moonview.ProtocolRequest,
+) -> Unit {
+  match self.view {
+    Some(view) =>
+      ignore(
+        view.respond_protocol(
+          request.id,
+          @moonview.ProtocolResponse::new(
+            status=200,
+            headers=[
+              @moonview.HttpHeader::new(name="Content-Type", value="text/html"),
+            ],
+            body=@utf8.encode(
+              (
+                #|<!doctype html>
+                #|<meta charset="utf-8">
+                #|<title>moonview smoke</title>
+                #|<script>
+                #|  window.addEventListener("DOMContentLoaded", () => {
+                #|    window.moonview.postMessage("page-ready");
+                #|  });
+                #|</script>
+                #|<body>moonview smoke</body>
+              )[:],
+              bom=false,
+            ),
+          ),
+        ),
+      )
+    None => ()
   }
 }
 
@@ -119,6 +147,10 @@ fn Smoke::dispose(self : Smoke) -> Unit {
 
 ///|
 fn main {
+  match @moonview.register_custom_scheme("moonview") {
+    Ok(_) => ()
+    Err(_) => abort("moonview smoke: scheme registration failed")
+  }
   let smoke = { view: None, succeeded: false }
   let hwnd = create_host_window(640, 480)
   if hwnd == 0UL {

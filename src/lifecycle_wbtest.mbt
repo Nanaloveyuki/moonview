@@ -83,6 +83,48 @@ test "lifecycle moves from creation to ready or failed" {
 }
 
 ///|
+test "custom protocol headers use a length-prefixed UTF-8 envelope" {
+  let headers = [
+    HttpHeader::new(name="Content-Type", value="text/plain; charset=utf-8"),
+    HttpHeader::new(name="X-Name", value="MoonBit"),
+  ]
+  assert_eq(decode_http_headers(encode_http_headers(headers)), headers)
+}
+
+///|
+test "malformed custom protocol headers are rejected" {
+  assert_eq(decode_http_headers(b"\x00\x00\x00\x01"), [])
+}
+
+///|
+test "protocol cancellation uses the request identifier" {
+  assert_eq(
+    decode_native_event(10, encode_utf8("request-8"), encode_utf8(""), 0),
+    WebViewEvent::ProtocolCancelled("request-8"),
+  )
+}
+
+///|
+test "unknown media permission kinds are denied" {
+  let handle : UInt64 = 9002
+  register_view(
+    handle,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1), on_media_permission=_request => {
+      MediaPermissionDecision::Allow
+    }),
+  )
+  assert_eq(
+    decide_media_permission(handle, 99, encode_utf8("https://example.test")),
+    0,
+  )
+  assert_eq(
+    decide_media_permission(handle, 1, encode_utf8("https://example.test")),
+    1,
+  )
+  unregister_view(handle)
+}
+
+///|
 test "navigation decisions are isolated per view and deny unknown views" {
   let allowed : UInt64 = 9002
   let denied : UInt64 = 9003
