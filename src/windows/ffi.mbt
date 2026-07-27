@@ -4,6 +4,9 @@
 /// be located by the WebView2 loader.
 pub extern "C" fn available() -> Int = "moonview_windows_available"
 
+///|
+pub extern "C" fn current_thread_token() -> UInt64 = "moonview_windows_current_thread_token"
+
 ///| Installs the process-wide event listener. Replacing it releases the prior
 
 ///| owned MoonBit closure.

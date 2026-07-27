@@ -29,6 +29,21 @@ fn native_available() -> Bool {
 }
 
 ///|
+fn native_thread_token() -> UInt64 {
+  match active_backend() {
+    NativeBackend::Windows => @windows.current_thread_token()
+    NativeBackend::MacOS => @macos.current_thread_token()
+    NativeBackend::Linux => @linux.current_thread_token()
+    _ => 0UL
+  }
+}
+
+///|
+fn native_is_owner_thread(owner_thread : UInt64) -> Bool {
+  owner_thread != 0UL && native_thread_token() == owner_thread
+}
+
+///|
 fn native_is_ohos() -> Bool {
   active_backend() == NativeBackend::Ohos
 }

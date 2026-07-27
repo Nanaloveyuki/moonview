@@ -714,6 +714,10 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() {
   return runtime_available() ? 1 : 0;
 }
 
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_current_thread_token() {
+  return static_cast<uint64_t>(GetCurrentThreadId());
+}
+
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t hwnd, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t url, moonbit_bytes_t html, moonbit_bytes_t initialization_script,
@@ -929,6 +933,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_respond_protocol(
     uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_current_thread_token() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
     uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t,
     moonbit_bytes_t, moonbit_bytes_t) { return 0; }

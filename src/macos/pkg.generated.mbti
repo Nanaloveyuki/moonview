@@ -8,6 +8,8 @@ pub fn available() -> Int
 
 pub fn create(UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes, Bytes) -> UInt64
 
+pub fn current_thread_token() -> UInt64
+
 pub fn destroy(UInt64) -> Int
 
 pub fn eval(UInt64, Bytes, Bytes) -> Int

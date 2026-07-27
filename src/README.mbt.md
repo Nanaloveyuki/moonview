@@ -3,7 +3,8 @@
 `moonview` is the native-only package for embedding a platform WebView in a
 caller-owned native container. The host supplies the parent handle, owns the UI
 thread and event loop, resizes the child, and destroys the child before its
-parent.
+parent. Every WebView command must run on that owner UI thread; Moonview does
+not provide cross-thread dispatch.
 
 ## Minimal Use
 

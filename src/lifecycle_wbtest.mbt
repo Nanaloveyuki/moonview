@@ -102,6 +102,12 @@ test "rejected native commands become observable failures" {
 }
 
 ///|
+test "owner-thread checks reject commands before native dispatch" {
+  assert_eq(owner_thread_result(true), Ok(()))
+  assert_eq(owner_thread_result(false), Err(WebViewError::WrongThread))
+}
+
+///|
 test "custom protocol headers use a length-prefixed UTF-8 envelope" {
   let headers = [
     HttpHeader::new(name="Content-Type", value="text/plain; charset=utf-8"),
@@ -175,7 +181,7 @@ test "options preserve the configured user agent" {
 
 ///|
 test "zoom factors must be positive" {
-  let view = WebView::{ handle: 9010 }
+  let view = WebView::{ handle: 9010, owner_thread: 0UL }
   assert_eq(
     view.set_zoom_factor(0.0),
     Err(

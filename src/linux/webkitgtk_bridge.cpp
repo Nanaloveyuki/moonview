@@ -627,6 +627,10 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() {
   return gtk_get_major_version() == 3 ? 1 : 0;
 }
 
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_current_thread_token() {
+  return static_cast<uint64_t>(reinterpret_cast<uintptr_t>(g_thread_self()));
+}
+
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
@@ -862,6 +866,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_navigation_callback(Na
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_protocol_callback(ProtocolTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_install_media_permission_callback(MediaPermissionTrampoline, void *) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_available() { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_current_thread_token() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
