@@ -162,6 +162,28 @@ pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
 }
 
 ///|
+/// Opens the platform print dialog for the current document.
+///
+/// The dialog is available after `Ready`. Older WebView2 runtimes and macOS
+/// releases before 11 return `Unsupported`.
+pub fn WebView::open_print_dialog(self : WebView) -> Result[Unit, WebViewError] {
+  match self.lifecycle() {
+    WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
+    WebViewLifecycle::Failed(error) => Err(error)
+    _ =>
+      if native_open_print_dialog(self.handle) != 0 {
+        Ok(())
+      } else {
+        Err(
+          WebViewError::Unsupported(
+            "WebView print dialog is unavailable on this backend",
+          ),
+        )
+      }
+  }
+}
+
+///|
 pub fn WebView::eval(
   self : WebView,
   script : String,

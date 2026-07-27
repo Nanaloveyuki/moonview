@@ -430,6 +430,17 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_devtools(uint64_t hand
   return 1;
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_print_dialog(uint64_t handle) {
+  View *view = find_view(handle);
+  if (view == nullptr) {
+    return 0;
+  }
+  WebKitPrintOperation *operation = webkit_print_operation_new(view->webview);
+  webkit_print_operation_run_dialog(operation, nullptr);
+  g_object_unref(operation);
+  return 1;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -481,6 +492,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_linux_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_init(uint64_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_set_zoom(uint64_t, double) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_devtools(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_print_dialog(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_post_message(uint64_t, moonbit_bytes_t) {}
 

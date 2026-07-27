@@ -617,6 +617,28 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_devtools(uint64_t) {
   return 0;
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_print_dialog(uint64_t handle) {
+  View *view = find_view(handle);
+  if (view == nullptr || !send<BOOL, SEL>(view->webview, selector("respondsToSelector:"),
+                                           selector("printOperationWithPrintInfo:"))) {
+    return 0;
+  }
+  id window = send<id>(view->webview, selector("window"));
+  id print_info = send<id>(class_object("NSPrintInfo"), selector("sharedPrintInfo"));
+  if (window == nil || print_info == nil) {
+    return 0;
+  }
+  id operation = send<id, id>(view->webview, selector("printOperationWithPrintInfo:"), print_info);
+  if (operation == nil) {
+    return 0;
+  }
+  send<void, BOOL>(operation, selector("setCanSpawnSeparateThread:"), YES);
+  send<void, id, id, SEL, void *>(operation,
+      selector("runOperationModalForWindow:delegate:didRunSelector:contextInfo:"),
+      window, nil, nullptr, nullptr);
+  return 1;
+}
+
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -668,6 +690,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_go_forward(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_init(uint64_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_set_zoom(uint64_t, double) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_devtools(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_open_print_dialog(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_post_message(uint64_t, moonbit_bytes_t) {}
 

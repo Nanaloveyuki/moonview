@@ -251,6 +251,16 @@ fn native_open_devtools(handle : UInt64) -> Int {
 }
 
 ///|
+fn native_open_print_dialog(handle : UInt64) -> Int {
+  match active_backend() {
+    NativeBackend::Windows => @windows.open_print_dialog(handle)
+    NativeBackend::MacOS => @macos.open_print_dialog(handle)
+    NativeBackend::Linux => @linux.open_print_dialog(handle)
+    NativeBackend::Unsupported => 0
+  }
+}
+
+///|
 fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Unit {
   match active_backend() {
     NativeBackend::Windows => @windows.eval(handle, script, request_id)

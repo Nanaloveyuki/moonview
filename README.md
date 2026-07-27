@@ -87,6 +87,8 @@ configured in `WebViewOptions` is installed before the first document loads;
 `set_zoom_factor` accepts positive page zoom values.
 `open_devtools` is supported by WebView2 and WebKitGTK; WKWebView has no
 supported public API to open its inspector, so macOS returns `Unsupported`.
+`open_print_dialog` uses the platform print UI and may return `Unsupported` on
+an older WebView2 runtime or macOS release.
 The embedded API does not create host windows: popup and `window.open` requests
 are denied by default on every backend.
 

@@ -106,6 +106,9 @@ pub extern "C" fn set_zoom(view : UInt64, factor : Double) -> Unit = "moonview_w
 pub extern "C" fn open_devtools(view : UInt64) -> Int = "moonview_windows_open_devtools"
 
 ///|
+pub extern "C" fn open_print_dialog(view : UInt64) -> Int = "moonview_windows_open_print_dialog"
+
+///|
 #borrow(script, request_id)
 pub extern "C" fn eval(
   view : UInt64,
