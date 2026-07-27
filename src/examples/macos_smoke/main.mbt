@@ -19,7 +19,7 @@ fn main {
   let contract = @contract.Contract::new(success => {
     finish(if success { 1 } else { 0 })
   })
-  match contract.start(parent_handle) {
+  match contract.start(@moonview.WebContext::ephemeral(), parent_handle) {
     Ok(_) => ()
     Err(_error) => {
       println("moonview macOS contract: create rejected")
