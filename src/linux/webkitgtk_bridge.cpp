@@ -393,7 +393,6 @@ bool finish_protocol(View *view, const std::string &request_id, int32_t status,
     webkit_uri_scheme_response_set_content_type(response, content_type);
   }
   webkit_uri_scheme_response_set_http_headers(response, response_headers);
-  soup_message_headers_unref(response_headers);
   webkit_uri_scheme_request_finish_with_response(pending.request, response);
   g_object_unref(response);
   g_object_unref(stream);
