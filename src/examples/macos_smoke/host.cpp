@@ -33,6 +33,7 @@ void release_object(id object) {
 
 id g_window = nil;
 id g_parent = nil;
+bool g_finished = false;
 bool g_succeeded = false;
 
 } // namespace
@@ -53,19 +54,22 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_smoke_create_host(
     return 0;
   }
   g_parent = send<id>(g_window, selector("contentView"));
+  g_finished = false;
+  g_succeeded = false;
   return reinterpret_cast<uint64_t>(g_parent);
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_smoke_run_loop() {
   const CFAbsoluteTime deadline = CFAbsoluteTimeGetCurrent() + 30.0;
-  while (!g_succeeded && CFAbsoluteTimeGetCurrent() < deadline) {
+  while (!g_finished && CFAbsoluteTimeGetCurrent() < deadline) {
     CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
   }
   return g_succeeded ? 0 : 1;
 }
 
-extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_succeed() {
-  g_succeeded = true;
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_finish(int32_t success) {
+  g_succeeded = success != 0;
+  g_finished = true;
 }
 
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_destroy_host() {
@@ -83,7 +87,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_destroy_host() {
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_smoke_create_host(
     int32_t, int32_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_smoke_run_loop() { return 1; }
-extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_succeed() {}
+extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_finish(int32_t) {}
 extern "C" MOONBIT_FFI_EXPORT void moonview_macos_smoke_destroy_host() {}
 
 #endif

@@ -10,6 +10,7 @@
 static const wchar_t *moonview_smoke_class = L"MoonviewSmokeHost";
 static HWND moonview_smoke_window = NULL;
 static UINT_PTR moonview_smoke_timer = 0;
+static int32_t moonview_smoke_status = 1;
 
 static LRESULT CALLBACK moonview_smoke_wndproc(HWND hwnd, UINT message,
                                                 WPARAM wparam, LPARAM lparam) {
@@ -25,7 +26,7 @@ static LRESULT CALLBACK moonview_smoke_wndproc(HWND hwnd, UINT message,
       moonview_smoke_timer = 0;
     }
     moonview_smoke_window = NULL;
-    PostQuitMessage(1);
+    PostQuitMessage(moonview_smoke_status);
     return 0;
   default:
     return DefWindowProcW(hwnd, message, wparam, lparam);
@@ -49,6 +50,7 @@ MOONBIT_FFI_EXPORT uint64_t moonview_smoke_create_host_window(int32_t width,
     return 0;
   }
   moonview_smoke_window = hwnd;
+  moonview_smoke_status = 1;
   ShowWindow(hwnd, SW_SHOW);
   moonview_smoke_timer = SetTimer(hwnd, 1, 30000, NULL);
   return (uint64_t)(uintptr_t)hwnd;
@@ -63,7 +65,8 @@ MOONBIT_FFI_EXPORT int32_t moonview_smoke_run_host_message_loop(void) {
   return (int32_t)message.wParam;
 }
 
-MOONBIT_FFI_EXPORT void moonview_smoke_close_host_window(void) {
+MOONBIT_FFI_EXPORT void moonview_smoke_finish(int32_t success) {
+  moonview_smoke_status = success != 0 ? 0 : 1;
   if (moonview_smoke_window != NULL) {
     DestroyWindow(moonview_smoke_window);
   }
@@ -82,6 +85,8 @@ MOONBIT_FFI_EXPORT uint64_t moonview_smoke_create_host_window(int32_t width,
   return 0;
 }
 MOONBIT_FFI_EXPORT int32_t moonview_smoke_run_host_message_loop(void) { return 1; }
-MOONBIT_FFI_EXPORT void moonview_smoke_close_host_window(void) {}
+MOONBIT_FFI_EXPORT void moonview_smoke_finish(int32_t success) {
+  (void)success;
+}
 MOONBIT_FFI_EXPORT void moonview_smoke_destroy_host_window(void) {}
 #endif

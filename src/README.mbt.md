@@ -26,7 +26,9 @@ match WebView::create(parent_handle, options) {
 
 Use `WebViewEvent::Ready` before relying on a loaded document. Page code sends
 UTF-8 strings with `window.moonview.postMessage(...)`; native code receives
-`PageMessage` and sends strings with `WebView::post_message(...)`.
+`PageMessage` and sends strings with `WebView::post_message(...)`. Page-side
+`window.moonview.onmessage` receives an object whose `data` property contains
+the UTF-8 message on every desktop backend.
 
 ## OpenHarmony ArkWeb
 

@@ -1,0 +1,6 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "Nanaloveyuki/moonview",
+}
+
+supported_targets = "native"

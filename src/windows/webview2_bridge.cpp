@@ -464,7 +464,7 @@ const wchar_t *bridge_script() {
   }
   window.chrome.webview.addEventListener("message", (event) => {
     if (typeof bridge.onmessage === "function") {
-      bridge.onmessage(String(event.data));
+      bridge.onmessage({ data: String(event.data) });
     }
   });
   window.moonview = bridge;
