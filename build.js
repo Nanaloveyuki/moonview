@@ -130,6 +130,25 @@ function hasOhosArkWebConfig(config) {
   );
 }
 
+function nativeBackend(config) {
+  const explicit = configEnv(config, "MOONVIEW_NATIVE_BACKEND").toLowerCase();
+  if (explicit) {
+    if (["windows", "linux", "macos", "ohos", "android"].includes(explicit)) {
+      return explicit;
+    }
+    throw new Error(
+      "MOONVIEW_NATIVE_BACKEND must be windows, linux, macos, ohos, or android.",
+    );
+  }
+  if (hasOhosArkWebConfig(config)) {
+    return "ohos";
+  }
+  if (process.platform === "win32") return "windows";
+  if (process.platform === "linux") return "linux";
+  if (process.platform === "darwin") return "macos";
+  throw new Error(`moonview does not support native builds on ${process.platform}.`);
+}
+
 function main() {
   const config = readConfig();
   const vars = {
@@ -145,7 +164,8 @@ function main() {
   };
   const linkConfigs = [];
 
-  if (hasOhosArkWebConfig(config)) {
+  switch (nativeBackend(config)) {
+  case "ohos": {
     const native = ohosArkWebConfig(config);
     vars.MOONVIEW_OHOS_ARKWEB_STUB_CC_FLAGS = native.stubFlags;
     vars.MOONVIEW_OHOS_ARKWEB_CC_LINK_FLAGS = native.linkFlags;
@@ -153,7 +173,9 @@ function main() {
       package: "Nanaloveyuki/moonview/ohos",
       link_flags: native.linkFlags,
     });
-  } else if (process.platform === "win32") {
+    break;
+  }
+  case "windows": {
     const native = webView2Config(config);
     vars.MOONVIEW_WEBVIEW2_STUB_CC_FLAGS = native.stubFlags;
     vars.MOONVIEW_WEBVIEW2_CC_LINK_FLAGS = native.linkFlags;
@@ -162,7 +184,9 @@ function main() {
       package: "Nanaloveyuki/moonview/windows",
       link_flags: native.linkFlags,
     });
-  } else if (process.platform === "linux") {
+    break;
+  }
+  case "linux": {
     const native = webKitGtkConfig();
     vars.MOONVIEW_WEBKITGTK_STUB_CC_FLAGS = native.stubFlags;
     vars.MOONVIEW_WEBKITGTK_CC_LINK_FLAGS = native.linkFlags;
@@ -170,15 +194,21 @@ function main() {
       package: "Nanaloveyuki/moonview/linux",
       link_flags: native.linkFlags,
     });
-  } else if (process.platform === "darwin") {
+    break;
+  }
+  case "macos": {
     const linkFlags = "-framework WebKit -framework AppKit -framework Foundation -lc++";
     vars.MOONVIEW_WKWEBVIEW_CC_LINK_FLAGS = linkFlags;
     linkConfigs.push({
       package: "Nanaloveyuki/moonview/macos",
       link_flags: linkFlags,
     });
-  } else {
-    throw new Error(`moonview does not support native builds on ${process.platform}.`);
+    break;
+  }
+  case "android":
+    // The optional moonview/android package owns no desktop SDK linkage.
+    // Its Android NDK/JNI inputs are supplied by the consuming application.
+    break;
   }
 
   console.log(JSON.stringify({ vars, link_configs: linkConfigs }));
