@@ -19,6 +19,7 @@ jobs:
           dnf install -y \
             curl \
             gcc-c++ \
+            git \
             gtk3-devel \
             nodejs \
             tar \
@@ -26,5 +27,9 @@ jobs:
             xorg-x11-server-Xvfb
       - name: Install MoonBit
         run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      - name: Update MoonBit registry
+        run: "$HOME/.moon/bin/moon update"
+      - name: Install MoonBit dependencies
+        run: "$HOME/.moon/bin/moon install"
       - name: Run WebKitGTK tests and smoke
         run: xvfb-run -a sh scripts/test-linux.sh

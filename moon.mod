@@ -26,6 +26,10 @@ preferred_target = "native"
 
 source = "src"
 
+import {
+  "Nanaloveyuki/ajni@0.1.1",
+}
+
 options(
   "--moonbit-unstable-prebuild": "build.js",
 )

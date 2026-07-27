@@ -1,0 +1,6 @@
+import {
+  "Nanaloveyuki/ajni",
+  "Nanaloveyuki/ajni/webview",
+}
+
+supported_targets = "native"

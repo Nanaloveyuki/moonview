@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Nanaloveyuki/moonview/android"
+
+import {
+  "Nanaloveyuki/ajni",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct AndroidBounds {
+  x : Int
+  y : Int
+  width : Int
+  height : Int
+} derive(Eq, @debug.Debug)
+pub fn AndroidBounds::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Self
+
+pub struct AndroidWebView {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn AndroidWebView::create(AndroidWebViewOptions) -> Self raise @ajni.JniError
+pub fn AndroidWebView::destroy(Self) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::eval(Self, String, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::load_html(Self, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::navigate(Self, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::set_bounds(Self, AndroidBounds) -> Unit raise @ajni.JniError
+
+pub(all) enum AndroidWebViewEvent {
+  Ready
+  NavigationStarting(String)
+  SourceChanged(String)
+  NavigationCompleted(String)
+  TitleChanged(String)
+  ScriptResult(String, String)
+  Failed(String)
+  Destroyed
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AndroidWebViewOptions {
+  bounds : AndroidBounds
+  initial_url : String
+  initial_html : String
+  on_event : (AndroidWebViewEvent) -> Unit
+}
+pub fn AndroidWebViewOptions::new(bounds~ : AndroidBounds, initial_url? : String, initial_html? : String, on_event? : (AndroidWebViewEvent) -> Unit) -> Self
+
+// Type aliases
+
+// Traits

@@ -210,6 +210,12 @@ unsupported on older platform runtimes.
   `arkweb_interface.h` and `libohweb.so`; alternatively set both
   `MOONVIEW_OHOS_ARKWEB_INCLUDE` and `MOONVIEW_OHOS_ARKWEB_LIB`. Moonview
   does not vendor or read SDK files from `ref/`.
+- Android (experimental): import `Nanaloveyuki/moonview/android`, which depends
+  only on `Nanaloveyuki/ajni/webview@0.1.1`. Attach ajni's Kotlin host to an
+  Activity-owned `FrameLayout` before creating a view, and set
+  `MOONVIEW_NATIVE_BACKEND=android` for the MoonBit build. See
+  `src/android/README.mbt.md` for the required CMake integration and the
+  intentionally limited initial capability set.
 
 ## Verify A Checkout
 
