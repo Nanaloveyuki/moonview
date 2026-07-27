@@ -20,6 +20,12 @@ jobs:
         shell: pwsh
         run: |
           "$HOME\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Update MoonBit registry
+        shell: pwsh
+        run: moon update
+      - name: Install MoonBit dependencies
+        shell: pwsh
+        run: moon install
       - name: Download WebView2 SDK
         shell: pwsh
         run: |
