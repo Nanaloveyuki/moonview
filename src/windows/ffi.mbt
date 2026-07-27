@@ -102,8 +102,11 @@ pub extern "C" fn respond_protocol(
 
 ///|
 /// takes precedence over `url`.
-#borrow(url, html, initialization_script, user_agent)
+#borrow(data_directory, url, html, initialization_script, user_agent)
 pub extern "C" fn create(
+  context_id : UInt64,
+  ephemeral : Bool,
+  data_directory : Bytes,
   hwnd : UInt64,
   x : Int,
   y : Int,

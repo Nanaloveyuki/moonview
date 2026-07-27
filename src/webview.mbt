@@ -45,6 +45,17 @@ pub fn WebView::create(
   parent_handle : UInt64,
   options : WebViewOptions,
 ) -> Result[WebView, WebViewError] {
+  WebView::create_in_context(options.context, parent_handle, options)
+}
+
+///|
+/// Starts asynchronous creation in a browser-data context shared by one or
+/// more WebViews.
+pub fn WebView::create_in_context(
+  context : WebContext,
+  parent_handle : UInt64,
+  options : WebViewOptions,
+) -> Result[WebView, WebViewError] {
   if native_is_ohos() {
     Err(
       WebViewError::Unsupported(
@@ -54,37 +65,66 @@ pub fn WebView::create(
   } else if !available() {
     Err(WebViewError::Unavailable)
   } else {
-    let owner_thread = native_thread_token()
-    if owner_thread == 0UL {
-      return Err(WebViewError::CreateRejected)
-    }
-    ensure_native_callbacks()
-    if !custom_schemes_locked.contains(0) {
-      native_lock_custom_schemes()
-      custom_schemes_locked.set(0, ())
-    }
-    let handle = native_create(
-      parent_handle,
-      options.bounds.x,
-      options.bounds.y,
-      options.bounds.width,
-      options.bounds.height,
-      encode_utf8(options.initial_url),
-      encode_utf8(options.initial_html),
-      encode_utf8(options.initialization_script),
-      encode_utf8(options.user_agent),
-    )
-    if handle == 0 {
-      Err(WebViewError::CreateRejected)
-    } else {
-      register_view(handle, options)
-      let view = WebView::{ handle, owner_thread }
-      if !options.visible {
-        ignore(native_set_visible(handle, false))
+    match context_error(context) {
+      Some(error) => Err(error)
+      None => {
+        let owner_thread = native_thread_token()
+        if owner_thread == 0UL {
+          return Err(WebViewError::CreateRejected)
+        }
+        ensure_native_callbacks()
+        if !custom_schemes_locked.contains(0) {
+          native_lock_custom_schemes()
+          custom_schemes_locked.set(0, ())
+        }
+        let handle = native_create(
+          context.id,
+          context.storage == WebContextStorage::Ephemeral,
+          encode_utf8(context.data_directory),
+          parent_handle,
+          options.bounds.x,
+          options.bounds.y,
+          options.bounds.width,
+          options.bounds.height,
+          encode_utf8(options.initial_url),
+          encode_utf8(options.initial_html),
+          encode_utf8(options.initialization_script),
+          encode_utf8(options.user_agent),
+        )
+        if handle == 0 {
+          Err(WebViewError::CreateRejected)
+        } else {
+          register_view(handle, options)
+          let view = WebView::{ handle, owner_thread }
+          if !options.visible {
+            ignore(native_set_visible(handle, false))
+          }
+          native_start(handle)
+          Ok(view)
+        }
       }
-      native_start(handle)
-      Ok(view)
     }
+  }
+}
+
+///|
+fn context_error(context : WebContext) -> WebViewError? {
+  if active_backend() == NativeBackend::Windows &&
+    context.storage == WebContextStorage::Ephemeral {
+    Some(
+      WebViewError::Unsupported(
+        "Ephemeral WebContext is unavailable on WebView2",
+      ),
+    )
+  } else if active_backend() == NativeBackend::MacOS &&
+    context.data_directory.length() > 0 {
+    Some(
+      WebViewError::Unsupported(
+        "Custom WebContext data directories are unavailable on WKWebView",
+      ),
+    )
+  } else {
+    None
   }
 }
 

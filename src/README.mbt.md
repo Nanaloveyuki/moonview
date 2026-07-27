@@ -35,6 +35,23 @@ UTF-8 strings with `window.moonview.postMessage(...)`; native code receives
 `window.moonview.onmessage` receives an object whose `data` property contains
 the UTF-8 message on every desktop backend.
 
+## Browser Data Contexts
+
+`WebView::create` uses the shared persistent context. Reuse a `WebContext`
+when multiple views must share browser data:
+
+```moonbit nocheck
+let context = @moonview.WebContext::persistent(data_directory="F:/app-data/moonview")
+match @moonview.WebView::create_in_context(context, parent_handle, options) {
+  Ok(view) => ignore(view.set_visible(true))
+  Err(_error) => abort("WebView creation rejected")
+}
+```
+
+Custom data directories are supported on Windows and Linux. Ephemeral contexts
+are supported on macOS and Linux. Unsupported combinations return `Unsupported`
+rather than selecting another browser profile.
+
 ## OpenHarmony ArkWeb
 
 OpenHarmony hosts `Web` in ArkUI rather than accepting an arbitrary native

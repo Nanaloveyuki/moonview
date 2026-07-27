@@ -141,10 +141,21 @@ struct Command {
 
 struct View;
 
-struct ThreadEnvironment {
+struct EnvironmentKey {
   DWORD thread_id = 0;
+  uint64_t context_id = 0;
+
+  bool operator<(const EnvironmentKey &other) const {
+    return thread_id != other.thread_id ? thread_id < other.thread_id
+                                        : context_id < other.context_id;
+  }
+};
+
+struct ThreadEnvironment {
+  EnvironmentKey key;
   bool creating = false;
   HRESULT failure = S_OK;
+  std::wstring data_directory;
   ComPtr<ICoreWebView2EnvironmentOptions> options;
   ComPtr<ICoreWebView2Environment> environment;
 };
@@ -153,6 +164,8 @@ struct View {
   uint64_t handle = 0;
   HWND parent = nullptr;
   DWORD thread_id = 0;
+  uint64_t context_id = 0;
+  std::wstring data_directory;
   bool com_initialized = false;
   bool destroyed = false;
   bool controller_creating = false;
@@ -170,7 +183,7 @@ struct View {
 };
 
 std::map<uint64_t, std::shared_ptr<View>> g_views;
-std::map<DWORD, ThreadEnvironment> g_environments;
+std::map<EnvironmentKey, ThreadEnvironment> g_environments;
 
 void emit_event(const std::shared_ptr<View> &view, EventKind kind,
                 const std::string &value = "", const std::string &detail = "",
@@ -189,7 +202,7 @@ int32_t navigation_allowed(const std::shared_ptr<View> &view, const std::string 
   return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(uri));
 }
 
-void fail_waiting_views(DWORD thread_id, HRESULT result, const char *operation);
+void fail_waiting_views(const EnvironmentKey &key, HRESULT result, const char *operation);
 
 #include "webview2_protocol.inc"
 
@@ -510,7 +523,8 @@ void create_controller(const std::shared_ptr<View> &view) {
   if (!view || view->destroyed || view->controller_creating || view->controller) {
     return;
   }
-  const auto environment_it = g_environments.find(view->thread_id);
+  const auto environment_it = g_environments.find(
+      EnvironmentKey{view->thread_id, view->context_id});
   if (environment_it == g_environments.end() || !environment_it->second.environment) {
     return;
   }
@@ -560,34 +574,38 @@ void create_controller(const std::shared_ptr<View> &view) {
           .Get());
 }
 
-void create_waiting_controllers(DWORD thread_id) {
+void create_waiting_controllers(const EnvironmentKey &key) {
   for (const auto &entry : g_views) {
     const std::shared_ptr<View> &view = entry.second;
-    if (view->thread_id == thread_id && !view->destroyed) {
+    if (view->thread_id == key.thread_id && view->context_id == key.context_id &&
+        !view->destroyed) {
       create_controller(view);
     }
   }
 }
 
-void fail_waiting_views(DWORD thread_id, HRESULT result, const char *operation) {
+void fail_waiting_views(const EnvironmentKey &key, HRESULT result, const char *operation) {
   for (const auto &entry : g_views) {
     const std::shared_ptr<View> &view = entry.second;
-    if (view->thread_id == thread_id && !view->destroyed) {
+    if (view->thread_id == key.thread_id && view->context_id == key.context_id &&
+        !view->destroyed) {
       emit_event(view, kCreationFailed, "", hresult_text(operation, result),
                  static_cast<int32_t>(result));
     }
   }
 }
 
-void ensure_environment(DWORD thread_id) {
-  ThreadEnvironment &state = g_environments[thread_id];
-  state.thread_id = thread_id;
+void ensure_environment(const std::shared_ptr<View> &view) {
+  const EnvironmentKey key{view->thread_id, view->context_id};
+  ThreadEnvironment &state = g_environments[key];
+  state.key = key;
+  state.data_directory = view->data_directory;
   if (state.environment || state.creating || FAILED(state.failure)) {
     return;
   }
   if (!runtime_available()) {
     state.failure = HRESULT_FROM_WIN32(ERROR_PRODUCT_UNINSTALLED);
-    fail_waiting_views(thread_id, state.failure, "WebView2 Runtime discovery");
+    fail_waiting_views(key, state.failure, "WebView2 Runtime discovery");
     return;
   }
   if (!configure_protocol_environment_options(state)) {
@@ -595,10 +613,10 @@ void ensure_environment(DWORD thread_id) {
   }
   state.creating = true;
   const HRESULT start = CreateCoreWebView2EnvironmentWithOptions(
-      nullptr, nullptr, state.options.Get(),
+      nullptr, state.data_directory.empty() ? nullptr : state.data_directory.c_str(), state.options.Get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-          [thread_id](HRESULT result, ICoreWebView2Environment *environment) -> HRESULT {
-            auto state_it = g_environments.find(thread_id);
+          [key](HRESULT result, ICoreWebView2Environment *environment) -> HRESULT {
+            auto state_it = g_environments.find(key);
             if (state_it == g_environments.end()) {
               return S_OK;
             }
@@ -606,26 +624,27 @@ void ensure_environment(DWORD thread_id) {
             completed.creating = false;
             if (FAILED(result) || environment == nullptr) {
               completed.failure = FAILED(result) ? result : E_FAIL;
-              fail_waiting_views(thread_id, completed.failure, "WebView2 environment creation");
+              fail_waiting_views(key, completed.failure, "WebView2 environment creation");
               return S_OK;
             }
             completed.environment = environment;
             completed.options.Reset();
-            create_waiting_controllers(thread_id);
+            create_waiting_controllers(key);
             return S_OK;
           })
           .Get());
   if (FAILED(start)) {
     state.creating = false;
     state.failure = start;
-    fail_waiting_views(thread_id, start, "WebView2 environment creation start");
+    fail_waiting_views(key, start, "WebView2 environment creation start");
   }
 }
 
-bool has_thread_views(DWORD thread_id) {
+bool has_context_views(const EnvironmentKey &key) {
   for (const auto &entry : g_views) {
     const std::shared_ptr<View> &view = entry.second;
-    if (view->thread_id == thread_id && !view->destroyed) {
+    if (view->thread_id == key.thread_id && view->context_id == key.context_id &&
+        !view->destroyed) {
       return true;
     }
   }
@@ -719,7 +738,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_current_thread_token() {
 }
 
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
-    uint64_t hwnd, int32_t x, int32_t y, int32_t width, int32_t height,
+    uint64_t context_id, int32_t, moonbit_bytes_t data_directory, uint64_t hwnd,
+    int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t url, moonbit_bytes_t html, moonbit_bytes_t initialization_script,
     moonbit_bytes_t user_agent) {
   const HWND parent = reinterpret_cast<HWND>(static_cast<uintptr_t>(hwnd));
@@ -735,6 +755,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
   view->handle = handle;
   view->parent = parent;
   view->thread_id = GetCurrentThreadId();
+  view->context_id = context_id;
+  view->data_directory = utf8_to_wide(bytes_to_utf8(data_directory));
   view->bounds = {x, y, x + width, y + height};
   view->initial_url = utf8_to_wide(bytes_to_utf8(url));
   view->initial_html = utf8_to_wide(bytes_to_utf8(html));
@@ -759,14 +781,15 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t handle) {
                static_cast<int32_t>(RPC_E_WRONG_THREAD));
     return;
   }
-  const auto existing_environment = g_environments.find(view->thread_id);
+  const EnvironmentKey key{view->thread_id, view->context_id};
+  const auto existing_environment = g_environments.find(key);
   if (existing_environment != g_environments.end() && FAILED(existing_environment->second.failure)) {
     emit_event(view, kCreationFailed, "",
                hresult_text("WebView2 environment creation", existing_environment->second.failure),
                static_cast<int32_t>(existing_environment->second.failure));
     return;
   }
-  ensure_environment(view->thread_id);
+  ensure_environment(view);
   create_controller(view);
 }
 
@@ -787,11 +810,11 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t handle) 
   }
   view->webview.Reset();
   view->controller.Reset();
-  const DWORD thread_id = view->thread_id;
+  const EnvironmentKey key{view->thread_id, view->context_id};
   const bool initialized_com = view->com_initialized;
   g_views.erase(handle);
-  if (!has_thread_views(thread_id)) {
-    const auto environment_it = g_environments.find(thread_id);
+  if (!has_context_views(key)) {
+    const auto environment_it = g_environments.find(key);
     if (environment_it != g_environments.end()) {
       environment_it->second.environment.Reset();
       environment_it->second.options.Reset();
@@ -935,8 +958,8 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_respond_protocol(
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_current_thread_token() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_windows_create(
-    uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t,
-    moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+    uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t,
+    moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_windows_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_bounds(

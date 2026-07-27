@@ -115,6 +115,7 @@ pub(all) enum WebViewEvent {
 /// If both initial content fields are non-empty, `initial_html` takes
 /// precedence. Treat the WebView as usable only after its `Ready` event.
 pub(all) struct WebViewOptions {
+  context : WebContext
   bounds : Rect
   initial_url : String
   initial_html : String
@@ -165,6 +166,7 @@ pub fn ProtocolResponse::new(
 ///|
 pub fn WebViewOptions::new(
   bounds~ : Rect,
+  context? : WebContext = WebContext::persistent(),
   initial_url? : String = "",
   initial_html? : String = "",
   initialization_script? : String = "",
@@ -175,6 +177,7 @@ pub fn WebViewOptions::new(
   on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision = deny_media_permission,
 ) -> WebViewOptions {
   {
+    context,
     bounds,
     initial_url,
     initial_html,
