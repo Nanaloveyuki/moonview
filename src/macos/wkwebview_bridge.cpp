@@ -563,7 +563,7 @@ void scheme_task_started(id, SEL, id webview, id task) {
       send<unsigned long>(data, selector("length"));
   const std::string request_id = std::to_string(g_next_protocol_request.fetch_add(1));
   View::PendingProtocol pending;
-  pending.task = task;
+  pending.task = send<id>(task, selector("retain"));
   auto *timeout = new ProtocolTimeout{view->handle, request_id};
   CFRunLoopTimerContext context{};
   context.info = timeout;
@@ -592,6 +592,7 @@ void scheme_task_stopped(id, SEL, id webview, id task) {
         CFRelease(pending->second.timeout);
       }
       emit_event(view, kProtocolCancelled, pending->first);
+      release_object(pending->second.task);
       view->pending_protocols.erase(pending);
       return;
     }
@@ -725,6 +726,7 @@ bool finish_protocol(View *view, const std::string &id_text, int32_t status,
   id request = send<id>(task, selector("request"));
   id url = request == nil ? nil : send<id>(request, selector("URL"));
   if (url == nil) {
+    release_object(task);
     return false;
   }
   id fields = send<id>(class_object("NSMutableDictionary"), selector("dictionary"));
@@ -742,6 +744,7 @@ bool finish_protocol(View *view, const std::string &id_text, int32_t status,
       static_cast<long>(status), version, fields);
   release_object(version);
   if (response == nil) {
+    release_object(task);
     return false;
   }
   send<void, id>(task, selector("didReceiveResponse:"), response);
@@ -753,6 +756,7 @@ bool finish_protocol(View *view, const std::string &id_text, int32_t status,
   }
   send<void>(task, selector("didFinish"));
   release_object(response);
+  release_object(task);
   return true;
 }
 
@@ -812,6 +816,9 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_macos_create(
     release_object(view->message_delegate);
     release_object(view->ui_delegate);
     release_object(view->content_manager);
+    for (id handler : view->scheme_handlers) {
+      release_object(handler);
+    }
     return 0;
   }
   const std::string configured_user_agent = bytes_to_utf8(user_agent);
@@ -859,6 +866,7 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_destroy(uint64_t handle) {
       CFRelease(pending.second.timeout);
     }
     emit_event(view, kProtocolCancelled, pending.first);
+    release_object(pending.second.task);
   }
   view->pending_protocols.clear();
   send<void, id>(view->webview, selector("setNavigationDelegate:"), nil);

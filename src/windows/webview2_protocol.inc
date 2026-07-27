@@ -459,4 +459,3 @@ bool configure_protocol_environment_options(ThreadEnvironment &state) {
   state.options = options;
   return true;
 }
-

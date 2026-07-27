@@ -66,8 +66,9 @@ backend; JavaScript `undefined` is reported as `null`.
 ## Controlled Resources
 
 Register an application scheme before creating the first WebView, then answer
-each `ProtocolRequest` from `on_event`. Schemes use secure
-`scheme://authority/path` URLs. Requests carry method, headers, and binary
+each `ProtocolRequest` from `on_event`. Schemes use
+`scheme://authority/path` URLs. Windows and WebKitGTK register them as secure
+origins; WKWebView uses its public URL-scheme handler. Requests carry method, headers, and binary
 body data; responses carry a status, headers, and binary body. A request not
 completed within 30 seconds is cancelled and reported as `ProtocolCancelled`.
 

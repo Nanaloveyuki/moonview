@@ -11,7 +11,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -406,8 +405,12 @@ struct ProtocolTimeout {
 gboolean protocol_timeout(gpointer data) {
   ProtocolTimeout *timeout = static_cast<ProtocolTimeout *>(data);
   View *view = find_view(timeout->handle);
-  if (view != nullptr &&
-      view->pending_protocols.find(timeout->request_id) != view->pending_protocols.end()) {
+  if (view != nullptr) {
+    const auto pending = view->pending_protocols.find(timeout->request_id);
+    if (pending == view->pending_protocols.end()) {
+      return G_SOURCE_REMOVE;
+    }
+    pending->second.timeout = 0;
     emit_event(view, kProtocolCancelled, timeout->request_id);
     finish_protocol(view, timeout->request_id, 504, empty_headers(), "");
   }
