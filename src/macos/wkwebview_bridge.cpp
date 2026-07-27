@@ -703,6 +703,8 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_respond_protocol(
                          bytes_to_utf8(headers), bytes_to_utf8(body)) ? 1 : 0;
 }
 
+namespace {
+
 bool finish_protocol(View *view, const std::string &id_text, int32_t status,
                      const std::string &encoded_headers, const std::string &payload) {
   if (view == nullptr || status < 100 || status > 599) {
@@ -759,6 +761,8 @@ bool finish_protocol(View *view, const std::string &id_text, int32_t status,
   release_object(task);
   return true;
 }
+
+}  // namespace
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_macos_available() {
   return class_object("WKWebView") != nil ? 1 : 0;
