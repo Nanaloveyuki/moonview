@@ -6,7 +6,6 @@ package "Nanaloveyuki/moonview/examples/linux_smoke"
 // Errors
 
 // Types and methods
-type Smoke
 
 // Type aliases
 

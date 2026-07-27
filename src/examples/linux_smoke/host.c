@@ -49,8 +49,8 @@ MOONBIT_FFI_EXPORT int32_t moonview_linux_smoke_run_loop(void) {
   return moonview_smoke_status;
 }
 
-MOONBIT_FFI_EXPORT void moonview_linux_smoke_succeed(void) {
-  moonview_smoke_status = 0;
+MOONBIT_FFI_EXPORT void moonview_linux_smoke_finish(int32_t success) {
+  moonview_smoke_status = success != 0 ? 0 : 1;
   if (moonview_smoke_window != NULL) {
     gtk_widget_destroy(moonview_smoke_window);
   } else {
@@ -70,6 +70,8 @@ MOONBIT_FFI_EXPORT uint64_t moonview_linux_smoke_create_host(int32_t width,
   return 0;
 }
 MOONBIT_FFI_EXPORT int32_t moonview_linux_smoke_run_loop(void) { return 1; }
-MOONBIT_FFI_EXPORT void moonview_linux_smoke_succeed(void) {}
+MOONBIT_FFI_EXPORT void moonview_linux_smoke_finish(int32_t success) {
+  (void)success;
+}
 
 #endif

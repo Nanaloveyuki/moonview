@@ -1,6 +1,5 @@
 import {
-  "moonbitlang/core/encoding/utf8",
-  "Nanaloveyuki/moonview",
+  "Nanaloveyuki/moonview/examples/contract",
 }
 
 supported_targets = "native"

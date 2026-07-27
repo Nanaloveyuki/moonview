@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Nanaloveyuki/moonview/examples/contract"
+
+import {
+  "Nanaloveyuki/moonview",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Contract {
+  mut view : @moonview.WebView?
+  mut completed : Bool
+  mut passed : Bool
+  mut ready : Bool
+  finish : (Bool) -> Unit
+}
+pub fn Contract::new((Bool) -> Unit) -> Self
+pub fn Contract::passed(Self) -> Bool
+pub fn Contract::start(Self, UInt64) -> Result[Unit, @moonview.WebViewError]
+
+// Type aliases
+
+// Traits

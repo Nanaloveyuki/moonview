@@ -110,6 +110,8 @@ the ArkUI component.
 The injected page bridge exposes `window.moonview.postMessage(string)`. Handle
 `PageMessage` in `on_event`, and send data to the page with `post_message`.
 Payloads are UTF-8 strings; applications define their own JSON or RPC protocol.
+When native code posts to the page, `window.moonview.onmessage` receives an
+object with the UTF-8 payload in `event.data` on every desktop backend.
 
 ```moonbit nocheck
 match event {
@@ -120,6 +122,12 @@ match event {
 
 ignore(view.post_message("host-ready"))
 ignore(view.eval("document.title", "document-title"))
+```
+
+```javascript
+window.moonview.onmessage = event => {
+  console.log(event.data)
+}
 ```
 
 `eval` reports JSON text through `ScriptResult`; JavaScript `undefined` is
