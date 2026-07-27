@@ -1,5 +1,5 @@
 ///|
-/// Per-view callbacks and observable lifecycle. The native WebView2 host owns
+/// Per-view callbacks and observable lifecycle. The native backend owns
 /// command queuing before Ready; this registry only routes callbacks.
 priv struct Registration {
   lifecycle : WebViewLifecycle
@@ -16,16 +16,7 @@ let callback_installation : Map[Int, Unit] = Map([])
 ///|
 fn ensure_native_callbacks() -> Unit {
   if !callback_installation.contains(0) {
-    @windows.install_event_callback(
-      fn(callback, handle, kind, value, detail, code) {
-        callback(handle, kind, value, detail, code)
-      },
-      dispatch_native_event,
-    )
-    @windows.install_navigation_callback(
-      fn(callback, handle, url) { callback(handle, url) },
-      decide_navigation,
-    )
+    install_native_callbacks(dispatch_native_event, decide_navigation)
     callback_installation.set(0, ())
   }
 }

@@ -1,5 +1,5 @@
 ///|
-/// A pixel rectangle relative to the parent Win32 window client area.
+/// A pixel rectangle relative to the caller-owned native parent container.
 pub(all) struct Rect {
   x : Int
   y : Int
@@ -17,7 +17,7 @@ pub(all) enum WebViewLifecycle {
 } derive(Eq, Debug)
 
 ///|
-/// Failures reported before or during WebView2 creation, or after disposal.
+/// Failures reported before or during native WebView creation, or after disposal.
 pub(all) enum WebViewError {
   Unavailable
   CreateRejected
@@ -33,7 +33,7 @@ pub(all) enum NavigationDecision {
 } derive(Eq, Debug)
 
 ///|
-/// Events emitted from the WebView2 UI thread.
+/// Events emitted on the native UI thread that owns the parent container.
 ///
 /// `ScriptResult` and `ScriptFailed` preserve the request identifier supplied
 /// to `WebView::eval`. Messages are UTF-8 strings without an imposed protocol.
@@ -55,7 +55,7 @@ pub(all) enum WebViewEvent {
 /// Configuration passed while the native WebView is being created.
 ///
 /// If both initial content fields are non-empty, `initial_html` takes
-/// precedence. Commands invoked before `Ready` are queued by the native host.
+/// precedence. Treat the WebView as usable only after its `Ready` event.
 pub(all) struct WebViewOptions {
   bounds : Rect
   initial_url : String

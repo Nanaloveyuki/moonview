@@ -7,11 +7,5 @@ supported_targets = "native"
 pkgtype(kind: "executable")
 
 options(
-  "native-stub": [ "host.c" ],
-  link: {
-    "native": {
-      "cc-link-flags": "${build.MOONVIEW_WINDOWS_SMOKE_CC_LINK_FLAGS}",
-    },
-  },
   targets: { "main.mbt": [ "native" ] },
 )

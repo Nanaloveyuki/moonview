@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Nanaloveyuki/moonview/linux"
+
+// Values
+pub fn add_init_script(UInt64, Bytes) -> Unit
+
+pub fn available() -> Int
+
+pub fn create(UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes) -> UInt64
+
+pub fn destroy(UInt64) -> Int
+
+pub fn eval(UInt64, Bytes, Bytes) -> Unit
+
+pub fn focus(UInt64) -> Unit
+
+pub fn go_back(UInt64) -> Unit
+
+pub fn go_forward(UInt64) -> Unit
+
+pub fn install_event_callback(FuncRef[((UInt64, Int, Bytes, Bytes, Int) -> Unit, UInt64, Int, Bytes, Bytes, Int) -> Unit], (UInt64, Int, Bytes, Bytes, Int) -> Unit) -> Unit
+
+pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
+
+pub fn load_html(UInt64, Bytes) -> Unit
+
+pub fn navigate(UInt64, Bytes) -> Unit
+
+pub fn post_message(UInt64, Bytes) -> Unit
+
+pub fn reload(UInt64) -> Unit
+
+pub fn set_bounds(UInt64, Int, Int, Int, Int) -> Unit
+
+pub fn set_visible(UInt64, Int) -> Unit
+
+pub fn start(UInt64) -> Unit
+
+pub fn stop(UInt64) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
