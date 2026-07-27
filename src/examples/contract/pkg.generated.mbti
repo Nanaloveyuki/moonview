@@ -19,7 +19,7 @@ pub struct Contract {
 }
 pub fn Contract::new((Bool) -> Unit) -> Self
 pub fn Contract::passed(Self) -> Bool
-pub fn Contract::start(Self, UInt64) -> Result[Unit, @moonview.WebViewError]
+pub fn Contract::start(Self, @moonview.WebContext, UInt64) -> Result[Unit, @moonview.WebViewError]
 
 // Type aliases
 
