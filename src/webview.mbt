@@ -168,6 +168,13 @@ pub fn WebView::lifecycle(self : WebView) -> WebViewLifecycle {
 }
 
 ///|
+/// Returns the last document URL and history state reported by the native
+/// backend. The value is updated asynchronously through navigation events.
+pub fn WebView::navigation_state(self : WebView) -> NavigationState {
+  navigation_state_of(self.handle)
+}
+
+///|
 pub fn WebView::set_bounds(
   self : WebView,
   bounds : Rect,

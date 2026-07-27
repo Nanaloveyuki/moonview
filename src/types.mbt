@@ -38,6 +38,14 @@ pub(all) enum NavigationDecision {
 } derive(Eq, Debug)
 
 ///|
+/// The most recently observed document URL and history availability.
+pub(all) struct NavigationState {
+  url : String
+  can_go_back : Bool
+  can_go_forward : Bool
+} derive(Eq, Debug)
+
+///|
 /// A single HTTP header in a custom-scheme request or response.
 pub(all) struct HttpHeader {
   name : String
@@ -147,6 +155,15 @@ pub fn OhosAttachOptions::new(
 ///|
 pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
   { x, y, width, height }
+}
+
+///|
+pub fn NavigationState::new(
+  url? : String = "",
+  can_go_back? : Bool = false,
+  can_go_forward? : Bool = false,
+) -> NavigationState {
+  { url, can_go_back, can_go_forward }
 }
 
 ///|

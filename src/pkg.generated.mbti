@@ -41,6 +41,13 @@ pub(all) enum NavigationDecision {
   Deny
 } derive(Eq, @debug.Debug)
 
+pub(all) struct NavigationState {
+  url : String
+  can_go_back : Bool
+  can_go_forward : Bool
+} derive(Eq, @debug.Debug)
+pub fn NavigationState::new(url? : String, can_go_back? : Bool, can_go_forward? : Bool) -> Self
+
 pub(all) struct OhosAttachOptions {
   on_event : (WebViewEvent) -> Unit
 }
@@ -96,6 +103,7 @@ pub fn WebView::go_forward(Self) -> Result[Unit, WebViewError]
 pub fn WebView::lifecycle(Self) -> WebViewLifecycle
 pub fn WebView::load_html(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::navigate(Self, String) -> Result[Unit, WebViewError]
+pub fn WebView::navigation_state(Self) -> NavigationState
 pub fn WebView::open_devtools(Self) -> Result[Unit, WebViewError]
 pub fn WebView::open_print_dialog(Self) -> Result[Unit, WebViewError]
 pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]

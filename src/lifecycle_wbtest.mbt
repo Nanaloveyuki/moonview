@@ -58,6 +58,38 @@ test "history decoding is insensitive to field order" {
 }
 
 ///|
+test "navigation state follows source and history events" {
+  let handle : UInt64 = 9012
+  register_view(
+    handle,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1)),
+  )
+  dispatch_native_event(
+    handle,
+    5,
+    encode_utf8("https://example.test/docs"),
+    encode_utf8(""),
+    0,
+  )
+  dispatch_native_event(
+    handle,
+    8,
+    encode_utf8(""),
+    encode_utf8("back=1;forward=0"),
+    0,
+  )
+  assert_eq(
+    navigation_state_of(handle),
+    NavigationState::new(
+      url="https://example.test/docs",
+      can_go_back=true,
+      can_go_forward=false,
+    ),
+  )
+  unregister_view(handle)
+}
+
+///|
 test "lifecycle moves from creation to ready or failed" {
   let handle : UInt64 = 9001
   register_view(
