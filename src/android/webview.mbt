@@ -28,6 +28,14 @@ fn ensure_callback() -> Unit {
 }
 
 ///|
+fn cancel_partial_create(handle : Int64) -> Unit {
+  @webview.destroy(handle) catch {
+    _ => ()
+  }
+  ignore(registrations.remove(handle))
+}
+
+///|
 /// Creates a child WebView in the Kotlin host attached through
 /// `dev.nanaloveyuki.ajni.host.NativeBridge`. The host must be attached before
 /// this function is called; otherwise ajni raises `JniError::NotInitialized`.
@@ -45,7 +53,7 @@ pub fn AndroidWebView::create(
   }
   @webview.create(handle, initial_url) catch {
     error => {
-      ignore(registrations.remove(handle))
+      cancel_partial_create(handle)
       raise error
     }
   }
@@ -57,14 +65,14 @@ pub fn AndroidWebView::create(
     options.bounds.height,
   ) catch {
     error => {
-      ignore(registrations.remove(handle))
+      cancel_partial_create(handle)
       raise error
     }
   }
   if options.initial_html != "" {
     @webview.load_html(handle, options.initial_html) catch {
       error => {
-        ignore(registrations.remove(handle))
+        cancel_partial_create(handle)
         raise error
       }
     }
