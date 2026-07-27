@@ -4,8 +4,12 @@
 The version in `moon.mod`, the changelog heading, Git tag, Mooncake package,
 and GitHub release must match exactly.
 
-For `0.1.0-alpha.1`, run the following from the release commit after all three
-native CI workflows are green:
+Choose the release version before preparing the release commit. Update
+`moon.mod`, add the corresponding `CHANGELOG.md` heading, and update the
+install command in `README.md`. Then merge that commit to `main` and wait for
+all three native CI workflows to pass.
+
+Run the validation commands from the merged release commit:
 
 ```powershell
 moon fmt --check
@@ -25,13 +29,15 @@ actual release.
 Run the Windows host smoke with a configured WebView2 SDK. GitHub Actions then
 provides the required macOS WKWebView and Fedora WebKitGTK smoke coverage.
 
-Create and push the annotated tag, publish, then create the GitHub release:
+Set the exact version once, then create and push the annotated tag, publish,
+and create the GitHub release:
 
 ```powershell
-git tag -a v0.1.0-alpha.1 -m "moonview 0.1.0-alpha.1"
-git push origin v0.1.0-alpha.1
+$version = "0.1.0-alpha.2"
+git tag -a "v$version" -m "moonview $version"
+git push origin "v$version"
 moon publish --frozen
-gh release create v0.1.0-alpha.1 --title "moonview 0.1.0-alpha.1" --notes-file CHANGELOG.md
+gh release create "v$version" --title "moonview $version" --notes-file CHANGELOG.md
 ```
 
 After Mooncake accepts the package, create a clean native fixture, add the
