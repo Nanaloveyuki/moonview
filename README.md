@@ -14,6 +14,23 @@ Native backends use the platform APIs directly:
 
 All backends share lifecycle, navigation, script, and UTF-8 message semantics.
 
+## Preview Release
+
+`0.1.0-alpha.1` is the first public preview. The native embedding contract is
+ready for application use, but source compatibility may change before stable
+`0.1.0`, especially when a concrete window-host integration contract is
+available. The package deliberately has no dependency on a windowing library.
+
+Install it in a native MoonBit application with:
+
+```sh
+moon add Nanaloveyuki/moonview@0.1.0-alpha.1
+```
+
+Import it as `@moonview`. The host retains ownership of the native parent,
+event loop, UI thread, resize notifications, and teardown order; `moonview`
+only owns the embedded child WebView.
+
 ## Build Prerequisites
 
 - MoonBit native toolchain and a C++ compiler for the host OS.
