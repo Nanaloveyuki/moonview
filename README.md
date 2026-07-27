@@ -1,150 +1,160 @@
 # moonview
 
-`moonview` is an Apache-2.0 MoonBit library for directly embedding native
-WebViews. It embeds into a caller-owned native container and does not create
-windows or run an event loop for the application.
+`moonview` embeds a native platform WebView into a MoonBit application's
+existing window. It does not create a top-level window or run an event loop.
+The host owns those responsibilities; `moonview` owns the child WebView.
 
-## Status
+## Install
 
-Native backends use the platform APIs directly:
-
-- Windows: WebView2 COM API in a caller-owned `HWND`.
-- macOS: WKWebView in a caller-owned `NSView*` on the main thread.
-- Linux: WebKitGTK 4.1 in a caller-owned `GtkFixed*`.
-
-All backends share lifecycle, navigation, script, and UTF-8 message semantics.
-
-## Preview Release
-
-`0.1.0-alpha.1` is the first public preview. The native embedding contract is
-ready for application use, but source compatibility may change before stable
-`0.1.0`, especially when a concrete window-host integration contract is
-available. The package deliberately has no dependency on a windowing library.
-
-Install it in a native MoonBit application with:
+Add the preview package to a native MoonBit module:
 
 ```sh
 moon add Nanaloveyuki/moonview@0.1.0-alpha.1
 ```
 
-Import it as `@moonview`. The host retains ownership of the native parent,
-event loop, UI thread, resize notifications, and teardown order; `moonview`
-only owns the embedded child WebView.
-
-## Build Prerequisites
-
-- MoonBit native toolchain and a C++ compiler for the host OS.
-- Windows: Visual Studio Build Tools, Edge WebView2 Runtime, and the WebView2
-  SDK. Set `MOONVIEW_WEBVIEW2_SDK_DIR`, or set both
-  `MOONVIEW_WEBVIEW2_INCLUDE` and `MOONVIEW_WEBVIEW2_LOADER_LIB`; a local
-  `.tools/webview2/` cache with NuGet's standard layout is also supported.
-  Set `MOONVIEW_WEBVIEW2_ARCH` for a non-x64 Loader path.
-- macOS: Xcode Command Line Tools. WKWebView is supplied by the operating
-  system; no SDK download is needed.
-- Linux: GTK 3 and the `webkit2gtk-4.1` development package discoverable with
-  `pkg-config`. The build script does not download system packages.
-
-The local WebView2 SDK cache is deliberately ignored. No SDK binaries are
-committed.
-
-With a configured SDK, run the end-to-end Windows host:
-
-```powershell
-moon run --target native src/examples/windows_smoke
-```
-
-Or use the repository helper, which scopes the SDK variables to one test run:
-
-```powershell
-.\scripts\test-windows.ps1 `
-  -WebView2Sdk F:\path\to\Microsoft.Web.WebView2.1.0.x
-```
-
-On Linux, run the WebKitGTK smoke after installing the development package:
-
-```sh
-sh scripts/test-linux.sh
-```
-
-## Lifecycle Contract
-
-Create the WebView on the UI thread that owns the parent container, keep that
-platform's event loop running, and destroy the WebView before the parent.
-Windows requires the caller's STA thread; macOS requires the main thread.
-Creation may be asynchronous, so wait for `Ready` before treating the WebView
-as usable. Navigation decisions are invoked synchronously on that same UI
-thread and must return promptly.
-
-The injected bridge exposes `window.moonview.postMessage(string)`. Message
-payloads are UTF-8 strings; applications own any JSON or RPC protocol layered
-on top of them. `WebView::eval` reports `ScriptResult` as JSON text on every
-backend; JavaScript `undefined` is reported as `null`.
-
-## Controlled Resources
-
-Register an application scheme before creating the first WebView, then answer
-each `ProtocolRequest` from `on_event`. Schemes use
-`scheme://authority/path` URLs. Windows and WebKitGTK register them as secure
-origins; WKWebView uses its public URL-scheme handler. Requests carry method, headers, and binary
-body data; responses carry a status, headers, and binary body. A request not
-completed within 30 seconds is cancelled and reported as `ProtocolCancelled`.
+Add the package import in the consumer's `moon.pkg`, then refer to it as
+`@moonview`:
 
 ```moonbit
-ignore(@moonview.register_custom_scheme("app"))
-
-let options = @moonview.WebViewOptions::new(
-  bounds=@moonview.Rect::new(x=0, y=0, width=800, height=600),
-  initial_url="app://ui/index.html",
-  on_event=event => println("protocol event: \\{event}"),
-  on_media_permission=_request => @moonview.MediaPermissionDecision::Deny,
-)
+import {
+  "Nanaloveyuki/moonview",
+}
 ```
 
-Keep the created `WebView` in the same callback state that receives
-`ProtocolRequest`, then call `view.respond_protocol(request.id, response)`.
+The package-level reference is [src/README.mbt.md](src/README.mbt.md).
 
-The media-permission callback covers camera and microphone requests on all
-three backends and defaults to deny. Other browser permission categories are
-not part of the cross-platform API yet.
+## Host Contract
 
-## Embedded Use
+Create the WebView on the UI thread that owns its native parent, keep that
+platform's event loop running, resize it with the parent, and destroy it before
+the parent is destroyed.
 
-```moonbit
+| Platform | `parent_handle` passed to `WebView::create` |
+| --- | --- |
+| Windows | A caller-owned `HWND` on an STA UI thread |
+| macOS | A caller-owned `NSView*` on the main thread |
+| Linux | A caller-owned `GtkFixed*` on the GTK UI thread |
+
+This raw-handle boundary is intentional so a window-management library can own
+native window creation and event dispatch. Popup and `window.open` requests are
+denied by default.
+
+## Create A WebView
+
+Use `Ready` before issuing work that requires a loaded native view.
+`initial_html` takes precedence when both initial-content fields are set.
+
+```moonbit nocheck
 let options = @moonview.WebViewOptions::new(
   bounds=@moonview.Rect::new(x=0, y=0, width=800, height=600),
   initial_url="https://example.com",
   initialization_script="console.log('moonview initialized')",
-  on_event=event => println("webview event: \\{event}"),
+  on_event=event => match event {
+    @moonview.WebViewEvent::Ready => println("webview ready")
+    @moonview.WebViewEvent::CreationFailed(error) => println("create failed: \{error}")
+    _ => ()
+  },
   on_navigation=_url => @moonview.NavigationDecision::Allow,
 )
 
 match @moonview.WebView::create(parent_handle, options) {
   Ok(view) => ignore(view.set_visible(true))
-  Err(error) => abort("WebView creation rejected: \\{error}")
+  Err(error) => abort("WebView creation rejected: \{error}")
 }
 ```
 
-`Ready` and `CreationFailed` are asynchronous events. An initialization script
-configured in `WebViewOptions` is installed before the first document loads;
-`add_init_script` applies to documents loaded after it is registered.
-`user_agent` configures the engine before its first document, and
-`set_zoom_factor` accepts positive page zoom values.
-`open_devtools` is supported by WebView2 and WebKitGTK; WKWebView has no
-supported public API to open its inspector, so macOS returns `Unsupported`.
-`open_print_dialog` uses the platform print UI and may return `Unsupported` on
-an older WebView2 runtime or macOS release.
-The embedded API does not create host windows: popup and `window.open` requests
-are denied by default on every backend.
+Resize the child with the host window and dispose it during host teardown:
 
-## Validation
-
-```powershell
-moon check --target native
-moon test --target native
-moon info
-moon fmt
+```moonbit nocheck
+ignore(view.set_bounds(@moonview.Rect::new(x=0, y=0, width=1024, height=768)))
+ignore(view.navigate("https://example.com/docs"))
+ignore(view.destroy())
 ```
 
-The Windows smoke executable additionally requires the WebView2 SDK and a
-native linker capable of consuming its static Loader library. The Linux smoke
-uses a GTK window under the active display server, including WSLg.
+## Page Communication
+
+The injected page bridge exposes `window.moonview.postMessage(string)`. Handle
+`PageMessage` in `on_event`, and send data to the page with `post_message`.
+Payloads are UTF-8 strings; applications define their own JSON or RPC protocol.
+
+```moonbit nocheck
+match event {
+  @moonview.WebViewEvent::PageMessage(message) => println("page: \{message}")
+  @moonview.WebViewEvent::ScriptResult(id, value) => println("\{id}: \{value}")
+  _ => ()
+}
+
+ignore(view.post_message("host-ready"))
+ignore(view.eval("document.title", "document-title"))
+```
+
+`eval` reports JSON text through `ScriptResult`; JavaScript `undefined` is
+reported as `null`.
+
+## Serve Application Resources
+
+Register application-owned schemes before the first `WebView::create`. Native
+backends emit `ProtocolRequest` events containing the method, URI, headers, and
+binary body. Retain the owning `WebView` in the callback state, then answer the
+request with `respond_protocol` before its 30-second deadline.
+
+```moonbit nocheck
+ignore(@moonview.register_custom_scheme("app"))
+
+let response = @moonview.ProtocolResponse::new(
+  status=200,
+  headers=[@moonview.HttpHeader::new(name="Content-Type", value="text/html")],
+  body=b"<!doctype html><title>moonview</title>",
+)
+
+// In the WebView event callback:
+// @moonview.WebViewEvent::ProtocolRequest(request) =>
+//   ignore(view.respond_protocol(request.id, response))
+```
+
+Use URLs such as `app://ui/index.html`. Windows and WebKitGTK register custom
+schemes as secure origins; WKWebView uses its public URL-scheme handler.
+Unanswered or cancelled requests emit `ProtocolCancelled`.
+
+## Permissions And Diagnostics
+
+Camera and microphone requests are denied by default. Supply
+`on_media_permission` only when the application can make a synchronous policy
+decision for the requesting origin. Other browser permission categories are not
+part of the cross-platform API.
+
+`open_devtools` is available on Windows and Linux; WKWebView returns
+`Unsupported`. `open_print_dialog` uses the platform print UI and may be
+unsupported on older platform runtimes.
+
+## Platform Prerequisites
+
+- Windows: Visual Studio Build Tools, Edge WebView2 Runtime, and the WebView2
+  SDK. Set `MOONVIEW_WEBVIEW2_SDK_DIR`, or set both
+  `MOONVIEW_WEBVIEW2_INCLUDE` and `MOONVIEW_WEBVIEW2_LOADER_LIB`. Set
+  `MOONVIEW_WEBVIEW2_ARCH` for a non-x64 Loader path.
+- macOS: Xcode Command Line Tools. WKWebView is supplied by the operating
+  system.
+- Linux: GTK 3 and the `webkit2gtk-4.1` development package available through
+  `pkg-config`. The Linux smoke also works through WSLg.
+
+## Verify A Checkout
+
+```powershell
+moon fmt --check
+moon check --target native
+moon test --target native
+.\scripts\test-windows.ps1 -WebView2Sdk F:\path\to\Microsoft.Web.WebView2.1.0.x
+```
+
+macOS and Fedora native smoke coverage runs in GitHub Actions.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, validation, and
+pull request requirements.
+
+## Preview Compatibility
+
+`0.1.0-alpha.1` is an API preview. Compatibility may change before stable
+`0.1.0`, particularly once a concrete window-host integration contract exists.
