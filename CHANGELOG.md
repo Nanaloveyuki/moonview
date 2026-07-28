@@ -2,6 +2,16 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.3
+
+- Adds the optional `moonview/android` adapter backed by ajni's AndroidX WebKit
+  host.
+- Provides a single HTTPS asset origin, document-start scripts, structured page
+  messages, asset request/response events, operation-correlated failures, and
+  per-view resource limits.
+- Enforces caller-owned `FrameLayout` hosting, main-Looper WebView mutation,
+  and idempotent destruction without a JavaScript interface.
+
 ## 0.1.0-alpha.1
 
 First public preview of direct native WebView embedding for MoonBit.

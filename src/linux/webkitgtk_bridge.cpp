@@ -132,6 +132,7 @@ struct View {
     guint timeout = 0;
   };
   std::unordered_map<std::string, PendingProtocol> pending_protocols;
+  size_t max_protocol_request_body_bytes = 0;
   std::string initial_url;
   std::string initial_html;
   bool started = false;
@@ -491,11 +492,11 @@ void destroy_protocol_timeout(gpointer data) {
   delete static_cast<ProtocolTimeout *>(data);
 }
 
-std::string read_request_body(GInputStream *body) {
+bool read_request_body(GInputStream *body, size_t max_bytes, std::string *result) {
+  result->clear();
   if (body == nullptr) {
-    return "";
+    return true;
   }
-  std::string result;
   char buffer[4096];
   while (true) {
     GError *error = nullptr;
@@ -506,9 +507,15 @@ std::string read_request_body(GInputStream *body) {
       }
       break;
     }
-    result.append(buffer, static_cast<size_t>(read));
+    const size_t read_size = static_cast<size_t>(read);
+    if (max_bytes != 0 &&
+        (result->size() > max_bytes || read_size > max_bytes - result->size())) {
+      result->clear();
+      return false;
+    }
+    result->append(buffer, read_size);
   }
-  return result;
+  return true;
 }
 
 void handle_scheme_request(WebKitURISchemeRequest *request, gpointer) {
@@ -534,11 +541,18 @@ void handle_scheme_request(WebKitURISchemeRequest *request, gpointer) {
   const gchar *scheme = webkit_uri_scheme_request_get_scheme(request);
   const gchar *method = webkit_uri_scheme_request_get_http_method(request);
   const gchar *uri = webkit_uri_scheme_request_get_uri(request);
+  std::string body;
+  if (!read_request_body(webkit_uri_scheme_request_get_http_body(request),
+                         view->max_protocol_request_body_bytes, &body)) {
+    finish_protocol(view, request_id, 413, empty_headers(),
+                    "Custom-scheme request body exceeds its configured limit");
+    return;
+  }
   g_protocol_trampoline(g_protocol_closure, view->handle, make_bytes(request_id),
       make_bytes(scheme == nullptr ? "" : scheme), make_bytes(method == nullptr ? "GET" : method),
       make_bytes(uri == nullptr ? "" : uri),
       make_bytes(encode_headers(webkit_uri_scheme_request_get_http_headers(request))),
-      make_bytes(read_request_body(webkit_uri_scheme_request_get_http_body(request))));
+      make_bytes(body));
 }
 
 void install_custom_schemes(WebKitWebContext *context) {
@@ -687,7 +701,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
     uint64_t context_id, int32_t ephemeral, moonbit_bytes_t data_directory,
     uint64_t parent_handle, int32_t x, int32_t y, int32_t width, int32_t height,
     moonbit_bytes_t initial_url, moonbit_bytes_t initial_html,
-    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent) {
+    moonbit_bytes_t initialization_script, moonbit_bytes_t user_agent,
+    int32_t, int32_t, int32_t max_protocol_request_body_bytes) {
   if (!gtk_init_check(nullptr, nullptr)) {
     return 0;
   }
@@ -702,6 +717,8 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   }
   auto view = std::make_unique<View>();
   view->handle = g_next_view_handle.fetch_add(1);
+  view->max_protocol_request_body_bytes = max_protocol_request_body_bytes > 0
+      ? static_cast<size_t>(max_protocol_request_body_bytes) : 0;
   view->parent = GTK_FIXED(parent_widget);
   view->content_manager = webkit_user_content_manager_new();
   if (!webkit_user_content_manager_register_script_message_handler(view->content_manager,
@@ -934,7 +951,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_current_thread_token() { r
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_register_custom_scheme(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_lock_custom_schemes() {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_respond_protocol(uint64_t, moonbit_bytes_t, int32_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
-extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(uint64_t, int32_t, moonbit_bytes_t, uint64_t, int32_t, int32_t, int32_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t, int32_t, int32_t, int32_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_linux_start(uint64_t) {}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_set_bounds(uint64_t, int32_t, int32_t, int32_t, int32_t) { return 0; }

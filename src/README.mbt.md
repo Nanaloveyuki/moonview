@@ -29,6 +29,26 @@ Control methods return `Ok(())` only after the native backend accepts or queues
 the command for a live view. Navigation and JavaScript outcomes remain
 asynchronous and are reported through `WebViewEvent`.
 
+## Resource Limits
+
+Desktop backends limit each WebView to 256 commands queued before readiness,
+4 MiB of queued command storage, and 4 MiB per custom-scheme request body.
+Configure or disable individual limits with `WebViewResourceLimits`; `0`
+disables one limit, while negative values cause `WebView::create` to return
+`NativeFailure`. The limits currently apply to Windows, macOS, and Linux.
+
+```moonbit nocheck
+///|
+let options = WebViewOptions::new(
+  bounds=Rect::new(x=0, y=0, width=800, height=600),
+  resource_limits=WebViewResourceLimits::new(
+    max_pending_commands=64,
+    max_pending_command_bytes=1024 * 1024,
+    max_protocol_request_body_bytes=1024 * 1024,
+  ),
+)
+```
+
 Use `WebViewEvent::Ready` before relying on a loaded document. Page code sends
 UTF-8 strings with `window.moonview.postMessage(...)`; native code receives
 `PageMessage` and sends strings with `WebView::post_message(...)`. Page-side
@@ -85,7 +105,8 @@ Moonview and does not destroy the ArkUI `Web` component.
 Call `register_custom_scheme(...)` before the first `WebView::create`, then
 respond to each `ProtocolRequest` with `WebView::respond_protocol(...)`. The
 request callback carries method, URI, headers, and binary body data; unanswered
-requests are cancelled after 30 seconds.
+requests are cancelled after 30 seconds. Oversized request bodies are answered
+with HTTP `413` locally and are not dispatched to MoonBit.
 
 ## Permissions
 

@@ -171,26 +171,42 @@ bool decode_response_headers(const std::string &input, std::wstring *headers) {
   return true;
 }
 
-std::string read_request_body(IStream *stream) {
+bool read_request_body(IStream *stream, size_t max_bytes, std::string *body) {
+  body->clear();
   if (stream == nullptr) {
-    return "";
+    return true;
   }
   STATSTG stat{};
-  if (FAILED(stream->Stat(&stat, STATFLAG_NONAME)) || stat.cbSize.HighPart != 0 ||
-      stat.cbSize.LowPart > 8 * 1024 * 1024) {
-    return "";
+  if (FAILED(stream->Stat(&stat, STATFLAG_NONAME))) {
+    return true;
+  }
+  if (max_bytes != 0 &&
+      (stat.cbSize.HighPart != 0 || stat.cbSize.LowPart > max_bytes)) {
+    return false;
+  }
+  if (stat.cbSize.HighPart != 0) {
+    return true;
   }
   LARGE_INTEGER start{};
   if (FAILED(stream->Seek(start, STREAM_SEEK_SET, nullptr))) {
-    return "";
+    return true;
   }
-  std::string body(stat.cbSize.LowPart, '\0');
-  ULONG read = 0;
-  if (!body.empty() && FAILED(stream->Read(&body[0], static_cast<ULONG>(body.size()), &read))) {
-    return "";
+  body->assign(stat.cbSize.LowPart, '\0');
+  size_t offset = 0;
+  while (offset < body->size()) {
+    ULONG read = 0;
+    if (FAILED(stream->Read(&(*body)[offset],
+                             static_cast<ULONG>(body->size() - offset), &read))) {
+      body->clear();
+      return true;
+    }
+    if (read == 0) {
+      break;
+    }
+    offset += read;
   }
-  body.resize(read);
-  return body;
+  body->resize(offset);
+  return max_bytes == 0 || body->size() <= max_bytes;
 }
 
 std::string scheme_of_uri(const std::string &uri) {
@@ -390,9 +406,17 @@ void install_protocol_handlers(const std::shared_ptr<View> &view, EventRegistrat
                                          "No moonview protocol handler is installed");
               return S_OK;
             }
+            std::string body;
+            if (!read_request_body(request_body.Get(), locked->max_protocol_request_body_bytes,
+                                   &body)) {
+              const std::string empty_headers(4, '\0');
+              complete_protocol_response(request_id, 413, empty_headers,
+                                         "Custom-scheme request body exceeds its configured limit");
+              return S_OK;
+            }
             emit_protocol_request(locked, request_id, scheme, method, uri,
                                   encode_request_headers(request_headers.Get()),
-                                  read_request_body(request_body.Get()));
+                                  body);
             return S_OK;
           })
           .Get(),

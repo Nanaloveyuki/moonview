@@ -82,6 +82,17 @@ pub(all) struct ProtocolResponse {
 } derive(Eq, Debug)
 
 ///|
+/// Per-WebView resource limits enforced by the desktop native backends.
+///
+/// A value of `0` disables the corresponding limit. Negative values are
+/// rejected by `WebView::create`.
+pub(all) struct WebViewResourceLimits {
+  max_pending_commands : Int
+  max_pending_command_bytes : Int
+  max_protocol_request_body_bytes : Int
+} derive(Eq, Debug)
+
+///|
 /// A media capture category requested by page content.
 pub(all) enum MediaPermissionKind {
   Camera
@@ -135,6 +146,7 @@ pub(all) enum WebViewEvent {
 pub(all) struct WebViewOptions {
   context : WebContext
   bounds : Rect
+  resource_limits : WebViewResourceLimits
   initial_url : String
   initial_html : String
   initialization_script : String
@@ -192,9 +204,23 @@ pub fn ProtocolResponse::new(
 }
 
 ///|
+pub fn WebViewResourceLimits::new(
+  max_pending_commands? : Int = 256,
+  max_pending_command_bytes? : Int = 4 * 1024 * 1024,
+  max_protocol_request_body_bytes? : Int = 4 * 1024 * 1024,
+) -> WebViewResourceLimits {
+  {
+    max_pending_commands,
+    max_pending_command_bytes,
+    max_protocol_request_body_bytes,
+  }
+}
+
+///|
 pub fn WebViewOptions::new(
   bounds~ : Rect,
   context? : WebContext = WebContext::persistent(),
+  resource_limits? : WebViewResourceLimits = WebViewResourceLimits::new(),
   initial_url? : String = "",
   initial_html? : String = "",
   initialization_script? : String = "",
@@ -208,6 +234,7 @@ pub fn WebViewOptions::new(
   {
     context,
     bounds,
+    resource_limits,
     initial_url,
     initial_html,
     initialization_script,

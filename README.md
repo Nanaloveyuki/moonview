@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-alpha.1
+moon add Nanaloveyuki/moonview@0.1.0-beta.3
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -158,6 +158,26 @@ window.moonview.onmessage = event => {
 `eval` reports JSON text through `ScriptResult`; JavaScript `undefined` is
 reported as `null`.
 
+## Resource Limits
+
+Each desktop WebView defaults to 256 commands queued before readiness, 4 MiB
+of queued command storage, and a 4 MiB custom-scheme request body limit. Pass
+`WebViewResourceLimits` through `WebViewOptions` to configure these values;
+`0` disables an individual limit and negative values reject creation with
+`NativeFailure`. Windows, macOS, and Linux enforce this policy.
+
+```moonbit nocheck
+let limits = @moonview.WebViewResourceLimits::new(
+  max_pending_commands=64,
+  max_pending_command_bytes=1024 * 1024,
+  max_protocol_request_body_bytes=1024 * 1024,
+)
+let options = @moonview.WebViewOptions::new(
+  bounds=@moonview.Rect::new(x=0, y=0, width=800, height=600),
+  resource_limits=limits,
+)
+```
+
 ## Serve Application Resources
 
 Register application-owned schemes before the first `WebView::create`. Native
@@ -182,6 +202,8 @@ let response = @moonview.ProtocolResponse::new(
 Use URLs such as `app://ui/index.html`. Windows and WebKitGTK register custom
 schemes as secure origins; WKWebView uses its public URL-scheme handler.
 Unanswered or cancelled requests emit `ProtocolCancelled`.
+Requests whose body exceeds the configured limit receive HTTP `413` locally
+and do not produce a `ProtocolRequest` event.
 
 ## Permissions And Diagnostics
 
@@ -211,11 +233,12 @@ unsupported on older platform runtimes.
   `MOONVIEW_OHOS_ARKWEB_INCLUDE` and `MOONVIEW_OHOS_ARKWEB_LIB`. Moonview
   does not vendor or read SDK files from `ref/`.
 - Android (experimental): import `Nanaloveyuki/moonview/android`, which depends
-  only on `Nanaloveyuki/ajni/webview@0.1.1`. Attach ajni's Kotlin host to an
-  Activity-owned `FrameLayout` before creating a view, and set
-  `MOONVIEW_NATIVE_BACKEND=android` for the MoonBit build. See
-  `src/android/README.mbt.md` for the required CMake integration and the
-  intentionally limited initial capability set.
+  only on the optional `Nanaloveyuki/ajni/webview` feature. Attach ajni's Kotlin
+  host to an Activity-owned `FrameLayout` before creating a view, and set
+  `MOONVIEW_NATIVE_BACKEND=android` for the MoonBit build. The adapter provides
+  a single HTTPS asset origin, document-start scripts, structured page messages,
+  asynchronous asset responses, operation-correlated errors, and resource
+  limits. See `src/android/README.mbt.md` for CMake integration and usage.
 
 ## Verify A Checkout
 
@@ -235,5 +258,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-alpha.1` is an API preview. Compatibility may change before stable
+`0.1.0-beta.3` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.

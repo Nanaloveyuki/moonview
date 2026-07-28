@@ -253,22 +253,28 @@ fn native_create(
   initial_html : Bytes,
   initialization_script : Bytes,
   user_agent : Bytes,
+  max_pending_commands : Int,
+  max_pending_command_bytes : Int,
+  max_protocol_request_body_bytes : Int,
 ) -> UInt64 {
   match active_backend() {
     NativeBackend::Windows =>
       @windows.create(
         context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
-        initial_url, initial_html, initialization_script, user_agent,
+        initial_url, initial_html, initialization_script, user_agent, max_pending_commands,
+        max_pending_command_bytes, max_protocol_request_body_bytes,
       )
     NativeBackend::MacOS =>
       @macos.create(
         context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
-        initial_url, initial_html, initialization_script, user_agent,
+        initial_url, initial_html, initialization_script, user_agent, max_pending_commands,
+        max_pending_command_bytes, max_protocol_request_body_bytes,
       )
     NativeBackend::Linux =>
       @linux.create(
         context_id, ephemeral, data_directory, parent_handle, x, y, width, height,
-        initial_url, initial_html, initialization_script, user_agent,
+        initial_url, initial_html, initialization_script, user_agent, max_pending_commands,
+        max_pending_command_bytes, max_protocol_request_body_bytes,
       )
     NativeBackend::Ohos => 0
     NativeBackend::Unsupported => 0

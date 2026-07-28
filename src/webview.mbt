@@ -65,44 +65,51 @@ pub fn WebView::create_in_context(
   } else if !available() {
     Err(WebViewError::Unavailable)
   } else {
-    match context_error(context) {
+    match resource_limits_error(options.resource_limits) {
       Some(error) => Err(error)
-      None => {
-        let owner_thread = native_thread_token()
-        if owner_thread == 0UL {
-          return Err(WebViewError::CreateRejected)
-        }
-        ensure_native_callbacks()
-        let handle = native_create(
-          context.id,
-          context.storage == WebContextStorage::Ephemeral,
-          encode_utf8(context.data_directory),
-          parent_handle,
-          options.bounds.x,
-          options.bounds.y,
-          options.bounds.width,
-          options.bounds.height,
-          encode_utf8(options.initial_url),
-          encode_utf8(options.initial_html),
-          encode_utf8(options.initialization_script),
-          encode_utf8(options.user_agent),
-        )
-        if handle == 0 {
-          Err(WebViewError::CreateRejected)
-        } else {
-          if should_lock_custom_schemes(handle) {
-            native_lock_custom_schemes()
-            custom_schemes_locked.set(0, ())
+      None =>
+        match context_error(context) {
+          Some(error) => Err(error)
+          None => {
+            let owner_thread = native_thread_token()
+            if owner_thread == 0UL {
+              return Err(WebViewError::CreateRejected)
+            }
+            ensure_native_callbacks()
+            let handle = native_create(
+              context.id,
+              context.storage == WebContextStorage::Ephemeral,
+              encode_utf8(context.data_directory),
+              parent_handle,
+              options.bounds.x,
+              options.bounds.y,
+              options.bounds.width,
+              options.bounds.height,
+              encode_utf8(options.initial_url),
+              encode_utf8(options.initial_html),
+              encode_utf8(options.initialization_script),
+              encode_utf8(options.user_agent),
+              options.resource_limits.max_pending_commands,
+              options.resource_limits.max_pending_command_bytes,
+              options.resource_limits.max_protocol_request_body_bytes,
+            )
+            if handle == 0 {
+              Err(WebViewError::CreateRejected)
+            } else {
+              if should_lock_custom_schemes(handle) {
+                native_lock_custom_schemes()
+                custom_schemes_locked.set(0, ())
+              }
+              register_view(handle, options)
+              let view = WebView::{ handle, owner_thread }
+              if !options.visible {
+                ignore(native_set_visible(handle, false))
+              }
+              native_start(handle)
+              Ok(view)
+            }
           }
-          register_view(handle, options)
-          let view = WebView::{ handle, owner_thread }
-          if !options.visible {
-            ignore(native_set_visible(handle, false))
-          }
-          native_start(handle)
-          Ok(view)
         }
-      }
     }
   }
 }
@@ -132,6 +139,21 @@ fn context_error(context : WebContext) -> WebViewError? {
     Some(
       WebViewError::Unsupported(
         "Custom WebContext data directories are unavailable on WKWebView",
+      ),
+    )
+  } else {
+    None
+  }
+}
+
+///|
+fn resource_limits_error(limits : WebViewResourceLimits) -> WebViewError? {
+  if limits.max_pending_commands < 0 ||
+    limits.max_pending_command_bytes < 0 ||
+    limits.max_protocol_request_body_bytes < 0 {
+    Some(
+      WebViewError::NativeFailure(
+        0, "WebView resource limits must be non-negative",
       ),
     )
   } else {

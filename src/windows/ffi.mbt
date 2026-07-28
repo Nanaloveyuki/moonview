@@ -126,6 +126,9 @@ pub extern "C" fn create(
   html : Bytes,
   initialization_script : Bytes,
   user_agent : Bytes,
+  max_pending_commands : Int,
+  max_pending_command_bytes : Int,
+  max_protocol_request_body_bytes : Int,
 ) -> UInt64 = "moonview_windows_create"
 
 ///|
