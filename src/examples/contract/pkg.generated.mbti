@@ -26,3 +26,4 @@ pub fn Contract::start(Self, @moonview.WebContext, UInt64) -> Result[Unit, @moon
 // Type aliases
 
 // Traits
+
