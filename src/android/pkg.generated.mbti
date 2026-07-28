@@ -11,6 +11,20 @@ import {
 // Errors
 
 // Types and methods
+pub(all) struct AndroidAssetRequest {
+  id : String
+  path : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AndroidAssetResponse {
+  status : Int
+  mime_type : String
+  encoding : String
+  headers : Array[AndroidHeader]
+  body : Bytes
+} derive(Eq, @debug.Debug)
+pub fn AndroidAssetResponse::new(status~ : Int, mime_type~ : String, encoding? : String, headers? : Array[AndroidHeader], body? : Bytes) -> Self
+
 pub(all) struct AndroidBounds {
   x : Int
   y : Int
@@ -19,35 +33,78 @@ pub(all) struct AndroidBounds {
 } derive(Eq, @debug.Debug)
 pub fn AndroidBounds::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Self
 
+pub(all) struct AndroidHeader {
+  name : String
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn AndroidHeader::new(name~ : String, value~ : String) -> Self
+
+pub(all) enum AndroidInitialContent {
+  Empty
+  Url(String)
+  Html(String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AndroidPageMessage {
+  body : String
+  origin : String
+  is_main_frame : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AndroidResourceLimits {
+  max_page_message_bytes : Int
+  max_pending_asset_requests : Int
+  max_asset_response_bytes : Int
+  asset_response_timeout_millis : Int
+} derive(Eq, @debug.Debug)
+pub fn AndroidResourceLimits::new(max_page_message_bytes? : Int, max_pending_asset_requests? : Int, max_asset_response_bytes? : Int, asset_response_timeout_millis? : Int) -> Self
+
 pub struct AndroidWebView {
   // private fields
 } derive(Eq, @debug.Debug)
-pub fn AndroidWebView::create(AndroidWebViewOptions) -> Self raise @ajni.JniError
-pub fn AndroidWebView::destroy(Self) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::add_document_start_script(Self, String, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::create(AndroidWebViewOptions, String) -> Self raise @ajni.JniError
+pub fn AndroidWebView::destroy(Self, String) -> Unit raise @ajni.JniError
 pub fn AndroidWebView::eval(Self, String, String) -> Unit raise @ajni.JniError
-pub fn AndroidWebView::load_html(Self, String) -> Unit raise @ajni.JniError
-pub fn AndroidWebView::navigate(Self, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::lifecycle(Self) -> AndroidWebViewLifecycle
+pub fn AndroidWebView::load_html_with_base_url(Self, String, String, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::navigate(Self, String, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::post_message(Self, String, String) -> Unit raise @ajni.JniError
+pub fn AndroidWebView::respond_asset(Self, String, AndroidAssetResponse, String) -> Unit raise @ajni.JniError
 pub fn AndroidWebView::set_bounds(Self, AndroidBounds) -> Unit raise @ajni.JniError
 
 pub(all) enum AndroidWebViewEvent {
   Ready
+  CreationFailed(String, String)
   NavigationStarting(String)
   SourceChanged(String)
   NavigationCompleted(String)
   TitleChanged(String)
   ScriptResult(String, String)
+  PageMessage(AndroidPageMessage)
+  AssetRequest(AndroidAssetRequest)
+  OperationFailed(String, String)
+  Destroyed
+} derive(Eq, @debug.Debug)
+
+pub(all) enum AndroidWebViewLifecycle {
+  Creating
+  Ready
   Failed(String)
   Destroyed
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AndroidWebViewOptions {
   bounds : AndroidBounds
-  initial_url : String
-  initial_html : String
+  trusted_origin : String
+  initial_content : AndroidInitialContent
+  document_start_scripts : Array[String]
+  resource_limits : AndroidResourceLimits
   on_event : (AndroidWebViewEvent) -> Unit
 }
-pub fn AndroidWebViewOptions::new(bounds~ : AndroidBounds, initial_url? : String, initial_html? : String, on_event? : (AndroidWebViewEvent) -> Unit) -> Self
+pub fn AndroidWebViewOptions::new(bounds~ : AndroidBounds, trusted_origin~ : String, initial_content? : AndroidInitialContent, document_start_scripts? : Array[String], resource_limits? : AndroidResourceLimits, on_event? : (AndroidWebViewEvent) -> Unit) -> Self
 
 // Type aliases
 
 // Traits
+
