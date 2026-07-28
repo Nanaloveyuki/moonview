@@ -17,14 +17,15 @@ moon check --target native
 moon test --target native
 moon info
 git diff --check
-moon package --list --frozen
-moon publish --dry-run --frozen
+moon package --list
+moon publish --dry-run
 ```
 
 Current Moon CLI builds may return a nonzero exit status after the dry-run
 server reports `202 Accepted`; treat the accepted server response and extracted
-package check as the result, then use a normal `moon publish --frozen` for the
-actual release.
+package check as the result. Do not pass `--frozen` to `moon publish`: the
+publisher verifies an extracted package and must resolve its external Mooncake
+dependencies there.
 
 Run the Windows host smoke with a configured WebView2 SDK. GitHub Actions then
 provides the required macOS WKWebView and Fedora WebKitGTK smoke coverage.
@@ -36,7 +37,7 @@ and create the GitHub release:
 $version = "0.1.0-alpha.2"
 git tag -a "v$version" -m "moonview $version"
 git push origin "v$version"
-moon publish --frozen
+moon publish
 gh release create "v$version" --title "moonview $version" --notes-file CHANGELOG.md
 ```
 
