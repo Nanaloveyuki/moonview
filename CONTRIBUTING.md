@@ -15,9 +15,11 @@ application or its window-management library.
 Use the native MoonBit toolchain and install dependencies for the platform you
 change.
 
-- Windows: Visual Studio Build Tools, Edge WebView2 Runtime, and a WebView2
-  SDK supplied through `MOONVIEW_WEBVIEW2_SDK_DIR` or the include/loader
-  environment variables documented in the README.
+- Windows: Visual Studio Build Tools and the Edge WebView2 Runtime. The
+  prebuild downloads and verifies the pinned WebView2 SDK on first use. An
+  existing or offline SDK can instead be supplied through
+  `MOONVIEW_WEBVIEW2_SDK_DIR` or the include/loader environment variables
+  documented in the README.
 - macOS: Xcode Command Line Tools.
 - Linux: GTK 3 and `webkit2gtk-4.1` development packages.
 - OpenHarmony: an ArkWeb NDK supplied through `MOONVIEW_OHOS_ARKWEB_SDK_DIR`
@@ -42,8 +44,13 @@ moon test --target native
 On Windows, also run:
 
 ```powershell
+.\scripts\test-windows.ps1
 .\scripts\test-windows.ps1 -WebView2Sdk F:\path\to\Microsoft.Web.WebView2.1.0.x
 ```
+
+The first command exercises automatic SDK acquisition. The second exercises
+the explicit offline override. Build-script changes must also pass
+`node --test tests/build.test.js`.
 
 Native backend changes require corresponding smoke coverage. GitHub Actions
 runs Windows WebView2, macOS WKWebView, and Fedora WebKitGTK checks for pull

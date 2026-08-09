@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.4
+moon add Nanaloveyuki/moonview@0.1.0-beta.5
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -218,10 +218,15 @@ unsupported on older platform runtimes.
 
 ## Platform Prerequisites
 
-- Windows: Visual Studio Build Tools, Edge WebView2 Runtime, and the WebView2
-  SDK. Set `MOONVIEW_WEBVIEW2_SDK_DIR`, or set both
-  `MOONVIEW_WEBVIEW2_INCLUDE` and `MOONVIEW_WEBVIEW2_LOADER_LIB`. Set
-  `MOONVIEW_WEBVIEW2_ARCH` for a non-x64 Loader path.
+- Windows: Visual Studio Build Tools and the Edge WebView2 Runtime. On the
+  first native build, Moonview downloads the official Microsoft WebView2 SDK
+  `1.0.4078.44`, verifies its pinned SHA-256 digest, and atomically extracts it
+  under `%LOCALAPPDATA%\moonview\webview2\1.0.4078.44`. Parallel builds share
+  a directory lock. Set `MOONVIEW_WEBVIEW2_CACHE_DIR` to move the cache, or set
+  `MOONVIEW_WEBVIEW2_SDK_DIR` to use an existing SDK without downloading.
+  `MOONVIEW_WEBVIEW2_INCLUDE` and `MOONVIEW_WEBVIEW2_LOADER_LIB` remain the
+  most specific overrides. Set `MOONVIEW_WEBVIEW2_ARCH` to `x64`, `x86`, or
+  `arm64`; it defaults to `x64`. Automatic extraction uses `tar` from `PATH`.
 - macOS: Xcode Command Line Tools. WKWebView is supplied by the operating
   system.
 - Linux: GTK 3 and the `webkit2gtk-4.1` development package available through
@@ -246,6 +251,8 @@ unsupported on older platform runtimes.
 moon fmt --check
 moon check --target native
 moon test --target native
+node --test tests/build.test.js
+.\scripts\test-windows.ps1
 .\scripts\test-windows.ps1 -WebView2Sdk F:\path\to\Microsoft.Web.WebView2.1.0.x
 ```
 
@@ -258,5 +265,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.4` is an API preview. Compatibility may change before stable
+`0.1.0-beta.5` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.
