@@ -2,6 +2,12 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.4
+
+- Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.2.1`.
+- Validate the native WebView packages and generated interfaces with MoonBit
+  0.10.6.
+
 ## 0.1.0-beta.3
 
 - Adds the optional `moonview/android` adapter backed by ajni's AndroidX WebKit
