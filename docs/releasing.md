@@ -27,7 +27,8 @@ package check as the result. Do not pass `--frozen` to `moon publish`: the
 publisher verifies an extracted package and must resolve its external Mooncake
 dependencies there.
 
-Run the Windows host smoke with a configured WebView2 SDK. GitHub Actions then
+Run the Windows host smoke once through automatic WebView2 SDK acquisition and,
+when practical, once with an explicit SDK override. GitHub Actions then
 provides the required macOS WKWebView and Fedora WebKitGTK smoke coverage.
 
 Set the exact version once, then create and push the annotated tag, publish,

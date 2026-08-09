@@ -2,6 +2,16 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.5
+
+- Download the official Microsoft WebView2 SDK `1.0.4078.44` on the first
+  Windows native build when no explicit SDK is configured.
+- Verify the NuGet package with a pinned SHA-256 digest and publish it through
+  a locked, atomic user-level cache so parallel builds cannot consume a
+  partial extraction.
+- Preserve explicit SDK, include, and Loader-library overrides for offline and
+  custom toolchain setups, with clearer download and extraction diagnostics.
+
 ## 0.1.0-beta.4
 
 - Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.2.1`.
