@@ -1,6 +1,6 @@
 name = "Nanaloveyuki/moonview"
 
-version = "0.1.0-beta.6"
+version = "0.1.0-beta.7"
 
 description = "Direct native WebView embedding for MoonBit."
 

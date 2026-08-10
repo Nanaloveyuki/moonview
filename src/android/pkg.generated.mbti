@@ -107,4 +107,3 @@ pub fn AndroidWebViewOptions::new(bounds~ : AndroidBounds, trusted_origin~ : Str
 // Type aliases
 
 // Traits
-

@@ -13,6 +13,33 @@ pub fn register_custom_scheme(String) -> Result[Unit, WebViewError]
 // Errors
 
 // Types and methods
+pub(all) struct FileDialogFilter {
+  name : String
+  extensions : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn FileDialogFilter::new(name~ : String, extensions~ : Array[String]) -> Self
+
+pub(all) enum FileDialogKind {
+  OpenFile
+  OpenFiles
+  SaveFile
+  PickDirectory
+} derive(Eq, @debug.Debug)
+
+pub(all) struct FileDialogOptions {
+  kind : FileDialogKind
+  title : String?
+  filters : Array[FileDialogFilter]
+  default_name : String?
+  initial_directory : String?
+} derive(Eq, @debug.Debug)
+pub fn FileDialogOptions::new(kind~ : FileDialogKind, title? : String?, filters? : Array[FileDialogFilter], default_name? : String?, initial_directory? : String?) -> Self
+
+pub(all) enum FileDialogResult {
+  Cancelled
+  Selected(Array[String])
+} derive(Eq, @debug.Debug)
+
 pub(all) struct HttpHeader {
   name : String
   value : String
@@ -117,6 +144,7 @@ pub fn WebView::respond_protocol(Self, String, ProtocolResponse) -> Result[Unit,
 pub fn WebView::set_bounds(Self, Rect) -> Result[Unit, WebViewError]
 pub fn WebView::set_visible(Self, Bool) -> Result[Unit, WebViewError]
 pub fn WebView::set_zoom_factor(Self, Double) -> Result[Unit, WebViewError]
+pub fn WebView::show_file_dialog(Self, FileDialogOptions) -> Result[FileDialogResult, WebViewError]
 pub fn WebView::stop(Self) -> Result[Unit, WebViewError]
 
 pub(all) enum WebViewError {

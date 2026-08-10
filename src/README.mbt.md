@@ -114,6 +114,34 @@ Camera and microphone requests are denied unless `on_media_permission` returns
 `MediaPermissionDecision::Allow`. Other browser permission kinds are not part
 of this cross-platform package API.
 
+## Native File Dialogs
+
+`WebView::show_file_dialog` presents a platform-native dialog from the owning
+UI thread. Windows supports file open, multi-file open, save, and directory
+selection. Other backends currently return `Unsupported` explicitly.
+
+```moonbit nocheck
+match view.show_file_dialog(
+  FileDialogOptions::new(
+    kind=FileDialogKind::OpenFile,
+    title=Some("Open document"),
+    filters=[
+      FileDialogFilter::new(
+        name="Text files",
+        extensions=["txt", "md"],
+      ),
+    ],
+  ),
+) {
+  Ok(FileDialogResult::Cancelled) => ()
+  Ok(FileDialogResult::Selected(paths)) => println(paths)
+  Err(error) => println(error)
+}
+```
+
+The selected paths are native host data. Frameworks embedding MoonView should
+apply their own capability policy before forwarding a selection to page code.
+
 ## Main Entry Points
 
 - `WebViewOptions::new(...)` configures creation callbacks and initial content.
@@ -122,6 +150,7 @@ of this cross-platform package API.
 - `WebView::create(...)` embeds an asynchronously-created native child view.
 - `WebView::set_bounds(...)`, `navigate(...)`, `eval(...)`, and
   `post_message(...)` control a live view.
+- `WebView::show_file_dialog(...)` presents a native file or directory dialog.
 - `WebView::destroy(...)` releases the native child before the host parent.
 - `register_custom_scheme(...)` and `WebView::respond_protocol(...)` serve
   application-owned resources.

@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.6
+moon add Nanaloveyuki/moonview@0.1.0-beta.7
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -216,6 +216,43 @@ part of the cross-platform API.
 `Unsupported`. `open_print_dialog` uses the platform print UI and may be
 unsupported on older platform runtimes.
 
+## Native File Dialogs
+
+`WebView::show_file_dialog` presents a platform-native dialog from the owning
+UI thread. Windows supports file open, multi-file open, save, and directory
+selection. Other backends currently return `Unsupported` explicitly.
+
+```moonbit nocheck
+match view.show_file_dialog(
+  @moonview.FileDialogOptions::new(
+    kind=@moonview.FileDialogKind::OpenFile,
+    title=Some("Open document"),
+    filters=[
+      @moonview.FileDialogFilter::new(
+        name="Text files",
+        extensions=["txt", "md"],
+      ),
+    ],
+  ),
+) {
+  Ok(@moonview.FileDialogResult::Cancelled) => ()
+  Ok(@moonview.FileDialogResult::Selected(paths)) => println(paths)
+  Err(error) => println(error)
+}
+```
+
+The selected paths are native host data. Frameworks embedding MoonView should
+apply their own capability policy before forwarding a selection to page code.
+For an interactive Windows verification in this checkout, run:
+
+```powershell
+$env:MOONVIEW_FILE_DIALOG_SMOKE = "1"
+moon run src/examples/windows_smoke
+```
+
+Cancel the dialog or select a MoonBit source file; either normal outcome lets
+the smoke contract complete. Omit the environment variable in CI.
+
 ## Platform Prerequisites
 
 - Windows: Visual Studio Build Tools and the Edge WebView2 Runtime. On the
@@ -265,5 +302,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.6` is an API preview. Compatibility may change before stable
+`0.1.0-beta.7` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.

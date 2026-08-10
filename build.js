@@ -278,6 +278,8 @@ async function webView2Config(config, dependencies = {}) {
     "ole32.lib",
     "oleaut32.lib",
     "user32.lib",
+    "shell32.lib",
+    "uuid.lib",
     "version.lib",
     "advapi32.lib",
   ].join(" ");

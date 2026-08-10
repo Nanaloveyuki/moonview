@@ -19,6 +19,9 @@ fn main {
   let contract = @contract.Contract::new(success => {
     finish(if success { 1 } else { 0 })
   })
+  if @env.get_env_var("MOONVIEW_FILE_DIALOG_SMOKE") == Some("1") {
+    contract.enable_file_dialog_smoke()
+  }
   match contract.start(@moonview.WebContext::persistent(), hwnd) {
     Ok(_) => ()
     Err(_error) => {

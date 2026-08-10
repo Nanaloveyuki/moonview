@@ -6,6 +6,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <shobjidl.h>
 #include <unknwn.h>
 #include <WebView2.h>
 #include <WebView2EnvironmentOptions.h>
@@ -18,6 +19,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -121,6 +123,84 @@ std::string hresult_text(const char *operation, HRESULT result) {
   std::snprintf(buffer, sizeof(buffer), "%s failed (HRESULT=0x%08X)", operation,
                 static_cast<unsigned int>(result));
   return buffer;
+}
+
+void append_u32be(std::string *output, uint32_t value) {
+  output->push_back(static_cast<char>((value >> 24) & 0xff));
+  output->push_back(static_cast<char>((value >> 16) & 0xff));
+  output->push_back(static_cast<char>((value >> 8) & 0xff));
+  output->push_back(static_cast<char>(value & 0xff));
+}
+
+moonbit_bytes_t encode_file_dialog_selection(const std::vector<std::string> &paths) {
+  if (paths.size() > UINT32_MAX) {
+    return moonbit_make_bytes(0, 0);
+  }
+  size_t size = 4;
+  for (const std::string &path : paths) {
+    if (path.empty() || path.size() > UINT32_MAX ||
+        path.size() > (std::numeric_limits<size_t>::max)() - size - 4) {
+      return moonbit_make_bytes(0, 0);
+    }
+    size += 4 + path.size();
+  }
+  if (size > static_cast<size_t>(INT32_MAX)) {
+    return moonbit_make_bytes(0, 0);
+  }
+  std::string output;
+  output.reserve(size);
+  append_u32be(&output, static_cast<uint32_t>(paths.size()));
+  for (const std::string &path : paths) {
+    append_u32be(&output, static_cast<uint32_t>(path.size()));
+    output.append(path);
+  }
+  return make_bytes(output);
+}
+
+bool parse_file_dialog_filters(
+    const std::string &encoded,
+    std::vector<std::wstring> *names,
+    std::vector<std::wstring> *patterns) {
+  size_t start = 0;
+  while (start < encoded.size()) {
+    const size_t end = encoded.find('\n', start);
+    const std::string line = encoded.substr(
+        start, end == std::string::npos ? std::string::npos : end - start);
+    const size_t separator = line.find('\t');
+    if (separator == std::string::npos || separator == 0 ||
+        separator + 1 >= line.size()) {
+      return false;
+    }
+    std::wstring name;
+    std::wstring pattern;
+    if (!utf8_to_wide_checked(line.substr(0, separator), &name) ||
+        !utf8_to_wide_checked(line.substr(separator + 1), &pattern) ||
+        name.empty() || pattern.empty()) {
+      return false;
+    }
+    names->push_back(std::move(name));
+    patterns->push_back(std::move(pattern));
+    if (end == std::string::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+  return true;
+}
+
+HRESULT append_file_dialog_path(IShellItem *item, std::vector<std::string> *paths) {
+  PWSTR raw_path = nullptr;
+  const HRESULT result = item->GetDisplayName(SIGDN_FILESYSPATH, &raw_path);
+  if (FAILED(result)) {
+    return result;
+  }
+  const std::string path = wide_to_utf8(raw_path);
+  CoTaskMemFree(raw_path);
+  if (path.empty()) {
+    return E_FAIL;
+  }
+  paths->push_back(path);
+  return S_OK;
 }
 
 struct Command {
@@ -977,6 +1057,171 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_
   return queue_or_run(view, {Command::OpenPrintDialog, L"", ""}) ? 1 : 0;
 }
 
+extern "C" MOONBIT_FFI_EXPORT moonbit_bytes_t moonview_windows_show_file_dialog(
+    uint64_t handle, int32_t kind, moonbit_bytes_t title, moonbit_bytes_t filters,
+    moonbit_bytes_t default_name, moonbit_bytes_t initial_directory,
+    int32_t *status) {
+  if (status == nullptr) {
+    return moonbit_make_bytes(0, 0);
+  }
+  *status = E_UNEXPECTED;
+  const std::shared_ptr<View> view = find_view(handle);
+  if (!view || view->destroyed || GetCurrentThreadId() != view->thread_id) {
+    return moonbit_make_bytes(0, 0);
+  }
+  if (kind < 0 || kind > 3) {
+    *status = E_INVALIDARG;
+    return moonbit_make_bytes(0, 0);
+  }
+
+  const HRESULT initialize_result = CoInitializeEx(
+      nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  if (FAILED(initialize_result)) {
+    *status = initialize_result;
+    return moonbit_make_bytes(0, 0);
+  }
+  const auto finish = [status](int32_t result, moonbit_bytes_t response) {
+    CoUninitialize();
+    *status = result;
+    return response;
+  };
+
+  std::wstring wide_title;
+  std::wstring wide_default_name;
+  std::wstring wide_initial_directory;
+  if (!utf8_to_wide_checked(bytes_to_utf8(title), &wide_title) ||
+      !utf8_to_wide_checked(bytes_to_utf8(default_name), &wide_default_name) ||
+      !utf8_to_wide_checked(bytes_to_utf8(initial_directory), &wide_initial_directory)) {
+    return finish(E_INVALIDARG, moonbit_make_bytes(0, 0));
+  }
+
+  std::vector<std::wstring> filter_names;
+  std::vector<std::wstring> filter_patterns;
+  if (!parse_file_dialog_filters(bytes_to_utf8(filters), &filter_names, &filter_patterns)) {
+    return finish(E_INVALIDARG, moonbit_make_bytes(0, 0));
+  }
+  std::vector<COMDLG_FILTERSPEC> filter_specs;
+  filter_specs.reserve(filter_names.size());
+  for (size_t index = 0; index < filter_names.size(); ++index) {
+    filter_specs.push_back({filter_names[index].c_str(), filter_patterns[index].c_str()});
+  }
+
+  ComPtr<IFileDialog> dialog;
+  const HRESULT create_result = CoCreateInstance(
+      kind == 2 ? CLSID_FileSaveDialog : CLSID_FileOpenDialog,
+      nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
+  if (FAILED(create_result) || !dialog) {
+    return finish(create_result, moonbit_make_bytes(0, 0));
+  }
+
+  FILEOPENDIALOGOPTIONS options = 0;
+  HRESULT result = dialog->GetOptions(&options);
+  if (FAILED(result)) {
+    return finish(result, moonbit_make_bytes(0, 0));
+  }
+  options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST;
+  if (kind == 0 || kind == 1) {
+    options |= FOS_FILEMUSTEXIST;
+  }
+  if (kind == 1) {
+    options |= FOS_ALLOWMULTISELECT;
+  }
+  if (kind == 2) {
+    options |= FOS_OVERWRITEPROMPT;
+  }
+  if (kind == 3) {
+    options |= FOS_PICKFOLDERS;
+  }
+  result = dialog->SetOptions(options);
+  if (FAILED(result)) {
+    return finish(result, moonbit_make_bytes(0, 0));
+  }
+  if (!wide_title.empty()) {
+    result = dialog->SetTitle(wide_title.c_str());
+    if (FAILED(result)) {
+      return finish(result, moonbit_make_bytes(0, 0));
+    }
+  }
+  if (!wide_default_name.empty()) {
+    result = dialog->SetFileName(wide_default_name.c_str());
+    if (FAILED(result)) {
+      return finish(result, moonbit_make_bytes(0, 0));
+    }
+  }
+  if (!filter_specs.empty()) {
+    result = dialog->SetFileTypes(static_cast<UINT>(filter_specs.size()), filter_specs.data());
+    if (FAILED(result)) {
+      return finish(result, moonbit_make_bytes(0, 0));
+    }
+    dialog->SetFileTypeIndex(1);
+  }
+  if (!wide_initial_directory.empty()) {
+    ComPtr<IShellItem> folder;
+    result = SHCreateItemFromParsingName(
+        wide_initial_directory.c_str(), nullptr, IID_PPV_ARGS(&folder));
+    if (SUCCEEDED(result) && folder) {
+      result = dialog->SetFolder(folder.Get());
+      if (FAILED(result)) {
+        return finish(result, moonbit_make_bytes(0, 0));
+      }
+    }
+  }
+
+  result = dialog->Show(view->parent);
+  if (result == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
+    return finish(1, moonbit_make_bytes(0, 0));
+  }
+  if (FAILED(result)) {
+    return finish(result, moonbit_make_bytes(0, 0));
+  }
+
+  std::vector<std::string> paths;
+  if (kind == 1) {
+    ComPtr<IFileOpenDialog> open_dialog;
+    result = dialog.As(&open_dialog);
+    if (FAILED(result) || !open_dialog) {
+      return finish(FAILED(result) ? result : E_NOINTERFACE, moonbit_make_bytes(0, 0));
+    }
+    ComPtr<IShellItemArray> selected;
+    result = open_dialog->GetResults(&selected);
+    if (FAILED(result) || !selected) {
+      return finish(FAILED(result) ? result : E_FAIL, moonbit_make_bytes(0, 0));
+    }
+    DWORD count = 0;
+    result = selected->GetCount(&count);
+    if (FAILED(result) || count == 0) {
+      return finish(FAILED(result) ? result : E_FAIL, moonbit_make_bytes(0, 0));
+    }
+    paths.reserve(count);
+    for (DWORD index = 0; index < count; ++index) {
+      ComPtr<IShellItem> item;
+      result = selected->GetItemAt(index, &item);
+      if (FAILED(result) || !item) {
+        return finish(FAILED(result) ? result : E_FAIL, moonbit_make_bytes(0, 0));
+      }
+      result = append_file_dialog_path(item.Get(), &paths);
+      if (FAILED(result)) {
+        return finish(result, moonbit_make_bytes(0, 0));
+      }
+    }
+  } else {
+    ComPtr<IShellItem> selected;
+    result = dialog->GetResult(&selected);
+    if (FAILED(result) || !selected) {
+      return finish(FAILED(result) ? result : E_FAIL, moonbit_make_bytes(0, 0));
+    }
+    result = append_file_dialog_path(selected.Get(), &paths);
+    if (FAILED(result)) {
+      return finish(result, moonbit_make_bytes(0, 0));
+    }
+  }
+  moonbit_bytes_t response = encode_file_dialog_selection(paths);
+  if (response == nullptr) {
+    return finish(E_OUTOFMEMORY, moonbit_make_bytes(0, 0));
+  }
+  return finish(0, response);
+}
+
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_eval(uint64_t handle,
                                                              moonbit_bytes_t script,
                                                              moonbit_bytes_t request_id) {
@@ -1040,6 +1285,12 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_init(uint64_t, moonbit_by
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_zoom(uint64_t, double) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_open_print_dialog(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT moonbit_bytes_t moonview_windows_show_file_dialog(
+    uint64_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
+    moonbit_bytes_t, int32_t *status) {
+  if (status != nullptr) *status = -1;
+  return moonbit_make_bytes(0, 0);
+}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_eval(
     uint64_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_post_message(

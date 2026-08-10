@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Nanaloveyuki/moonview/windows"
 
+import {
+  "moonbitlang/core/ref",
+}
+
 // Values
 pub fn add_init_script(UInt64, Bytes) -> Int
 
@@ -53,6 +57,8 @@ pub fn set_bounds(UInt64, Int, Int, Int, Int) -> Int
 pub fn set_visible(UInt64, Int) -> Int
 
 pub fn set_zoom(UInt64, Double) -> Int
+
+pub fn show_file_dialog(UInt64, Int, Bytes, Bytes, Bytes, Bytes, @ref.Ref[Int]) -> Bytes
 
 pub fn start(UInt64) -> Unit
 

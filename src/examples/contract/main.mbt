@@ -5,12 +5,27 @@ pub struct Contract {
   mut completed : Bool
   mut passed : Bool
   mut ready : Bool
+  mut file_dialog_smoke : Bool
   finish : (Bool) -> Unit
 }
 
 ///|
 pub fn Contract::new(finish : (Bool) -> Unit) -> Contract {
-  { view: None, completed: false, passed: false, ready: false, finish }
+  {
+    view: None,
+    completed: false,
+    passed: false,
+    ready: false,
+    file_dialog_smoke: false,
+    finish,
+  }
+}
+
+///|
+/// Enables one native file-dialog operation after the WebView becomes ready.
+/// This is intended for interactive platform smoke testing only.
+pub fn Contract::enable_file_dialog_smoke(self : Contract) -> Unit {
+  self.file_dialog_smoke = true
 }
 
 ///|
@@ -63,7 +78,12 @@ fn Contract::handle_event(
     @moonview.WebViewEvent::Ready => self.ready = true
     @moonview.WebViewEvent::ProtocolRequest(request) =>
       self.respond_protocol(request)
-    @moonview.WebViewEvent::PageMessage("page-ready") => self.post_ping()
+    @moonview.WebViewEvent::PageMessage("page-ready") =>
+      if self.file_dialog_smoke {
+        self.show_file_dialog_smoke()
+      } else {
+        self.post_ping()
+      }
     @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
     @moonview.WebViewEvent::ScriptResult(request_id, value) =>
       if request_id == "contract-eval" &&
@@ -77,6 +97,31 @@ fn Contract::handle_event(
     @moonview.WebViewEvent::ScriptFailed(_, _) => self.complete(false)
     @moonview.WebViewEvent::NavigationFailed(_, _) => self.complete(false)
     _ => ()
+  }
+}
+
+///|
+fn Contract::show_file_dialog_smoke(self : Contract) -> Unit {
+  match self.view {
+    Some(view) =>
+      match
+        view.show_file_dialog(
+          @moonview.FileDialogOptions::new(
+            kind=@moonview.FileDialogKind::OpenFile,
+            title=Some("MoonView file dialog smoke"),
+            filters=[
+              @moonview.FileDialogFilter::new(name="MoonBit source", extensions=[
+                "mbt",
+              ]),
+            ],
+          ),
+        ) {
+        Ok(@moonview.FileDialogResult::Cancelled) => self.post_ping()
+        Ok(@moonview.FileDialogResult::Selected(paths)) if !paths.is_empty() =>
+          self.post_ping()
+        _ => self.complete(false)
+      }
+    None => self.complete(false)
   }
 }
 

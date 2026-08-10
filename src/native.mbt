@@ -454,6 +454,36 @@ fn native_open_print_dialog(handle : UInt64) -> Int {
 }
 
 ///|
+fn native_show_file_dialog(
+  handle : UInt64,
+  kind : Int,
+  title : Bytes,
+  filters : Bytes,
+  default_name : Bytes,
+  initial_directory : Bytes,
+  status : Ref[Int],
+) -> Bytes {
+  match active_backend() {
+    NativeBackend::Windows =>
+      @windows.show_file_dialog(
+        handle, kind, title, filters, default_name, initial_directory, status,
+      )
+    NativeBackend::MacOS =>
+      @macos.show_file_dialog(
+        handle, kind, title, filters, default_name, initial_directory, status,
+      )
+    NativeBackend::Linux =>
+      @linux.show_file_dialog(
+        handle, kind, title, filters, default_name, initial_directory, status,
+      )
+    NativeBackend::Ohos | NativeBackend::Unsupported => {
+      status.val = -1
+      b""
+    }
+  }
+}
+
+///|
 fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Int {
   match active_backend() {
     NativeBackend::Windows => @windows.eval(handle, script, request_id)
