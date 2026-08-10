@@ -153,6 +153,18 @@ pub extern "C" fn open_devtools(view : UInt64) -> Int = "moonview_linux_open_dev
 pub extern "C" fn open_print_dialog(view : UInt64) -> Int = "moonview_linux_open_print_dialog"
 
 ///|
+#borrow(title, filters, default_name, initial_directory, status)
+pub extern "C" fn show_file_dialog(
+  view : UInt64,
+  kind : Int,
+  title : Bytes,
+  filters : Bytes,
+  default_name : Bytes,
+  initial_directory : Bytes,
+  status : Ref[Int],
+) -> Bytes = "moonview_linux_show_file_dialog"
+
+///|
 #borrow(script, request_id)
 pub extern "C" fn eval(
   view : UInt64,

@@ -902,6 +902,13 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_print_dialog(uint64_t 
   return 1;
 }
 
+extern "C" MOONBIT_FFI_EXPORT moonbit_bytes_t moonview_linux_show_file_dialog(
+    uint64_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
+    moonbit_bytes_t, int32_t *status) {
+  if (status != nullptr) *status = -1;
+  return moonbit_make_bytes(0, 0);
+}
+
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_eval(uint64_t handle,
                                                           moonbit_bytes_t script,
                                                           moonbit_bytes_t request_id) {
@@ -967,6 +974,12 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_init(uint64_t, moonbit_byte
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_set_zoom(uint64_t, double) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_devtools(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_open_print_dialog(uint64_t) { return 0; }
+extern "C" MOONBIT_FFI_EXPORT moonbit_bytes_t moonview_linux_show_file_dialog(
+    uint64_t, int32_t, moonbit_bytes_t, moonbit_bytes_t, moonbit_bytes_t,
+    moonbit_bytes_t, int32_t *status) {
+  if (status != nullptr) *status = -1;
+  return moonbit_make_bytes(0, 0);
+}
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_eval(uint64_t, moonbit_bytes_t, moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_post_message(uint64_t, moonbit_bytes_t) { return 0; }
 

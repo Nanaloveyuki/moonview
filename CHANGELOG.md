@@ -2,6 +2,15 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.7
+
+- Add `WebView::show_file_dialog` with open, multi-open, save, and directory
+  picker modes, user-visible filters, default names, and initial directories.
+- Implement the API with Windows `IFileDialog` and owner-window modal behavior.
+  The Linux and macOS backends report `Unsupported` until their native dialog
+  integrations are implemented.
+- Add an opt-in Windows smoke path for manually exercising the native picker.
+
 ## 0.1.0-beta.6
 
 - Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.2.2`.

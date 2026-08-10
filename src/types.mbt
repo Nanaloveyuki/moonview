@@ -48,6 +48,40 @@ pub(all) enum NewWindowDecision {
 } derive(Eq, Debug)
 
 ///|
+/// The native dialog operation to present for a WebView.
+pub(all) enum FileDialogKind {
+  OpenFile
+  OpenFiles
+  SaveFile
+  PickDirectory
+} derive(Eq, Debug)
+
+///|
+/// A user-facing name and the extensions accepted by a file dialog.
+/// Extensions do not include a leading dot or wildcard.
+pub(all) struct FileDialogFilter {
+  name : String
+  extensions : Array[String]
+} derive(Eq, Debug)
+
+///|
+/// Options for a native file dialog owned by a WebView's native container.
+pub(all) struct FileDialogOptions {
+  kind : FileDialogKind
+  title : String?
+  filters : Array[FileDialogFilter]
+  default_name : String?
+  initial_directory : String?
+} derive(Eq, Debug)
+
+///|
+/// The outcome of a native file dialog. `Cancelled` is a normal user action.
+pub(all) enum FileDialogResult {
+  Cancelled
+  Selected(Array[String])
+} derive(Eq, Debug)
+
+///|
 /// The most recently observed document URL and history availability.
 pub(all) struct NavigationState {
   url : String
@@ -187,6 +221,25 @@ pub fn NavigationState::new(
   can_go_forward? : Bool = false,
 ) -> NavigationState {
   { url, can_go_back, can_go_forward }
+}
+
+///|
+pub fn FileDialogFilter::new(
+  name~ : String,
+  extensions~ : Array[String],
+) -> FileDialogFilter {
+  { name, extensions }
+}
+
+///|
+pub fn FileDialogOptions::new(
+  kind~ : FileDialogKind,
+  title? : String? = None,
+  filters? : Array[FileDialogFilter] = [],
+  default_name? : String? = None,
+  initial_directory? : String? = None,
+) -> FileDialogOptions {
+  { kind, title, filters, default_name, initial_directory }
 }
 
 ///|

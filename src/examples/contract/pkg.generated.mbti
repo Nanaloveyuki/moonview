@@ -15,8 +15,10 @@ pub struct Contract {
   mut completed : Bool
   mut passed : Bool
   mut ready : Bool
+  mut file_dialog_smoke : Bool
   finish : (Bool) -> Unit
 }
+pub fn Contract::enable_file_dialog_smoke(Self) -> Unit
 pub fn Contract::new((Bool) -> Unit) -> Self
 pub fn Contract::passed(Self) -> Bool
 pub fn Contract::start(Self, @moonview.WebContext, UInt64) -> Result[Unit, @moonview.WebViewError]
