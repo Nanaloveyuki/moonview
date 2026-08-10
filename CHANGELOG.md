@@ -2,6 +2,12 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.6
+
+- Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.2.2`.
+- Align Moonview with Ajni's generic JNI and Android runtime package split;
+  Moonview's public Android adapter API remains unchanged.
+
 ## 0.1.0-beta.5
 
 - Download the official Microsoft WebView2 SDK `1.0.4078.44` on the first
