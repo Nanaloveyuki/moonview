@@ -106,6 +106,8 @@ fn dispatch_native_event(
         WebViewEvent::Ready => update_lifecycle(handle, WebViewLifecycle::Ready)
         WebViewEvent::CreationFailed(error) =>
           update_lifecycle(handle, WebViewLifecycle::Failed(error))
+        WebViewEvent::ProcessFailed(error) =>
+          update_lifecycle(handle, WebViewLifecycle::Failed(error))
         _ => ()
       }
       update_navigation_state(handle, event)
@@ -257,6 +259,7 @@ fn decode_native_event(
         )
       }
     10 => WebViewEvent::ProtocolCancelled(value)
+    11 => WebViewEvent::ProcessFailed(WebViewError::NativeFailure(code, detail))
     _ => WebViewEvent::CreationFailed(WebViewError::NativeFailure(code, detail))
   }
 }

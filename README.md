@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.7
+moon add Nanaloveyuki/moonview@0.1.0-beta.8
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -55,6 +55,7 @@ let options = @moonview.WebViewOptions::new(
   on_event=event => match event {
     @moonview.WebViewEvent::Ready => println("webview ready")
     @moonview.WebViewEvent::CreationFailed(_error) => println("create failed")
+    @moonview.WebViewEvent::ProcessFailed(_error) => println("browser process failed")
     _ => ()
   },
   on_navigation=_url => @moonview.NavigationDecision::Allow,
@@ -78,6 +79,10 @@ ignore(view.destroy())
 Control methods return `Ok(())` only when the native backend accepts or queues
 the command for a live view. Page navigation and JavaScript execution remain
 asynchronous; observe their final outcomes through `WebViewEvent`.
+
+`ProcessFailed` is terminal. Destroy the failed WebView on its owner UI thread,
+then create a replacement explicitly. Moonview does not recreate browser
+processes in the background.
 
 ## Browser Data Contexts
 
@@ -302,5 +307,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.7` is an API preview. Compatibility may change before stable
+`0.1.0-beta.8` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.

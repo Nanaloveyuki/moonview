@@ -2,6 +2,15 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.8
+
+- Report WebView2 browser-process failures through terminal
+  `WebViewEvent::ProcessFailed` events and transition the view lifecycle to
+  `Failed`.
+- Stop accepting queued or new commands after a browser-process failure; hosts
+  explicitly destroy and recreate the embedded view rather than relying on
+  implicit recovery.
+
 ## 0.1.0-beta.7
 
 - Add `WebView::show_file_dialog` with open, multi-open, save, and directory

@@ -115,6 +115,30 @@ test "lifecycle moves from creation to ready or failed" {
 }
 
 ///|
+test "process failure makes a ready view terminal" {
+  let handle : UInt64 = 9006
+  register_view(
+    handle,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1)),
+  )
+  dispatch_native_event(handle, 1, encode_utf8(""), encode_utf8(""), 0)
+  dispatch_native_event(
+    handle,
+    11,
+    encode_utf8(""),
+    encode_utf8("render process exited"),
+    1,
+  )
+  assert_eq(
+    lifecycle_of(handle),
+    WebViewLifecycle::Failed(
+      WebViewError::NativeFailure(1, "render process exited"),
+    ),
+  )
+  unregister_view(handle)
+}
+
+///|
 test "OpenHarmony attachment uses the common ready lifecycle" {
   let handle : UInt64 = 9004
   register_ohos_view(handle, OhosAttachOptions::new())
