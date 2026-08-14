@@ -35,11 +35,11 @@ Set the exact version once, then create and push the annotated tag, publish,
 and create the GitHub release:
 
 ```powershell
-$version = "0.1.0-alpha.2"
+$version = "0.1.0-beta.8"
 git tag -a "v$version" -m "moonview $version"
 git push origin "v$version"
 moon publish
-gh release create "v$version" --title "moonview $version" --notes-file CHANGELOG.md
+gh release create "v$version" --prerelease --title "moonview $version" --notes-file CHANGELOG.md
 ```
 
 After Mooncake accepts the package, create a clean native fixture, add the

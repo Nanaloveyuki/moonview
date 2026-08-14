@@ -40,6 +40,7 @@ enum EventKind : int32_t {
   kHistoryChanged = 8,
   kScriptCompleted = 9,
   kProtocolCancelled = 10,
+  kProcessFailed = 11,
 };
 
 typedef void (*EventTrampoline)(void *closure, uint64_t view, int32_t kind,
@@ -123,6 +124,32 @@ std::string hresult_text(const char *operation, HRESULT result) {
   std::snprintf(buffer, sizeof(buffer), "%s failed (HRESULT=0x%08X)", operation,
                 static_cast<unsigned int>(result));
   return buffer;
+}
+
+std::string process_failed_kind_text(COREWEBVIEW2_PROCESS_FAILED_KIND kind) {
+  switch (kind) {
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED:
+    return "browser process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED:
+    return "render process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE:
+    return "render process unresponsive";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED:
+    return "frame render process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_UTILITY_PROCESS_EXITED:
+    return "utility process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_SANDBOX_HELPER_PROCESS_EXITED:
+    return "sandbox helper process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_GPU_PROCESS_EXITED:
+    return "GPU process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_PPAPI_PLUGIN_PROCESS_EXITED:
+    return "PPAPI plugin process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_PPAPI_BROKER_PROCESS_EXITED:
+    return "PPAPI broker process exited";
+  case COREWEBVIEW2_PROCESS_FAILED_KIND_UNKNOWN_PROCESS_EXITED:
+    return "unknown browser process exited";
+  }
+  return "unrecognized browser process failure";
 }
 
 void append_u32be(std::string *output, uint32_t value) {
@@ -252,6 +279,7 @@ struct View {
   std::wstring data_directory;
   bool com_initialized = false;
   bool destroyed = false;
+  bool failed = false;
   bool controller_creating = false;
   bool scripts_installing = false;
   bool ready = false;
@@ -276,7 +304,9 @@ std::map<EnvironmentKey, ThreadEnvironment> g_environments;
 void emit_event(const std::shared_ptr<View> &view, EventKind kind,
                 const std::string &value = "", const std::string &detail = "",
                 int32_t code = 0) {
-  if (!view || view->destroyed || g_event_trampoline == nullptr || g_event_closure == nullptr) {
+  if (!view || view->destroyed ||
+      (view->failed && kind != kProcessFailed && kind != kCreationFailed) ||
+      g_event_trampoline == nullptr || g_event_closure == nullptr) {
     return;
   }
   g_event_trampoline(g_event_closure, view->handle, kind, make_bytes(value),
@@ -324,7 +354,7 @@ size_t command_storage_bytes(const Command &command) {
 }
 
 HRESULT run_command(const std::shared_ptr<View> &view, const Command &command) {
-  if (!view || view->destroyed || !view->webview) {
+  if (!view || view->destroyed || view->failed || !view->webview) {
     return E_UNEXPECTED;
   }
   switch (command.kind) {
@@ -394,7 +424,7 @@ void report_deferred_command_failure(const std::shared_ptr<View> &view,
 }
 
 void drain_pending(const std::shared_ptr<View> &view) {
-  if (!view || view->destroyed || !view->ready) {
+  if (!view || view->destroyed || view->failed || !view->ready) {
     return;
   }
   if (!view->initial_html.empty()) {
@@ -419,7 +449,7 @@ void drain_pending(const std::shared_ptr<View> &view) {
 }
 
 bool queue_or_run(const std::shared_ptr<View> &view, Command command) {
-  if (!view || view->destroyed) {
+  if (!view || view->destroyed || view->failed) {
     return false;
   }
   if (!view->ready) {
@@ -438,12 +468,47 @@ bool queue_or_run(const std::shared_ptr<View> &view, Command command) {
   return SUCCEEDED(run_command(view, command));
 }
 
-void install_handlers(const std::shared_ptr<View> &view) {
+bool install_handlers(const std::shared_ptr<View> &view) {
   if (!view || !view->webview) {
-    return;
+    return false;
   }
   const std::weak_ptr<View> weak_view = view;
   EventRegistrationToken token{};
+  const HRESULT process_failed_subscription = view->webview->add_ProcessFailed(
+      Callback<ICoreWebView2ProcessFailedEventHandler>(
+          [weak_view](ICoreWebView2 *, ICoreWebView2ProcessFailedEventArgs *args) -> HRESULT {
+            const std::shared_ptr<View> locked = weak_view.lock();
+            if (!locked || locked->destroyed || locked->failed) {
+              return S_OK;
+            }
+            COREWEBVIEW2_PROCESS_FAILED_KIND kind =
+                COREWEBVIEW2_PROCESS_FAILED_KIND_UNKNOWN_PROCESS_EXITED;
+            const HRESULT result = args == nullptr ? E_POINTER : args->get_ProcessFailedKind(&kind);
+            locked->failed = true;
+            locked->ready = false;
+            locked->scripts_installing = false;
+            locked->initial_url.clear();
+            locked->initial_html.clear();
+            locked->pending.clear();
+            locked->pending_bytes = 0;
+            emit_event(locked, kProcessFailed, "",
+                       SUCCEEDED(result) ? process_failed_kind_text(kind)
+                                         : hresult_text("WebView2 process failure", result),
+                       SUCCEEDED(result) ? static_cast<int32_t>(kind)
+                                         : static_cast<int32_t>(result));
+            return S_OK;
+          })
+          .Get(),
+      &token);
+  if (FAILED(process_failed_subscription)) {
+    view->failed = true;
+    view->pending.clear();
+    view->pending_bytes = 0;
+    emit_event(view, kCreationFailed, "",
+               hresult_text("WebView2 process failure handler registration", process_failed_subscription),
+               static_cast<int32_t>(process_failed_subscription));
+    return false;
+  }
   install_protocol_handlers(view, &token);
   view->webview->add_WebMessageReceived(
       Callback<ICoreWebView2WebMessageReceivedEventHandler>(
@@ -590,6 +655,7 @@ void install_handlers(const std::shared_ptr<View> &view) {
           })
           .Get(),
       &token);
+  return true;
 }
 
 const wchar_t *bridge_script() {
@@ -618,7 +684,7 @@ const wchar_t *bridge_script() {
 }
 
 void install_next_script(const std::shared_ptr<View> &view, size_t index) {
-  if (!view || view->destroyed || !view->webview) {
+  if (!view || view->destroyed || view->failed || !view->webview) {
     return;
   }
   if (index >= view->document_scripts.size()) {
@@ -698,7 +764,9 @@ void create_controller(const std::shared_ptr<View> &view) {
               }
             }
             apply_bounds(locked);
-            install_handlers(locked);
+            if (!install_handlers(locked)) {
+              return S_OK;
+            }
             locked->scripts_installing = true;
             install_next_script(locked, 0);
             return S_OK;

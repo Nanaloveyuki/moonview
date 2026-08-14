@@ -38,6 +38,8 @@ pub fn register_custom_scheme(name : String) -> Result[Unit, WebViewError] {
 ///
 /// The caller must keep the native parent container alive and run its UI event
 /// loop until the listener receives `WebViewEvent::Ready` or `CreationFailed`.
+/// A later `ProcessFailed` is terminal: destroy the view and create a new one
+/// explicitly after the host has handled the failure.
 /// On Windows, this is an `HWND`; on macOS, an `NSView*`; and on Linux, a
 /// `GtkFixed*`. Every later command, including `destroy`, must use this same
 /// UI thread.

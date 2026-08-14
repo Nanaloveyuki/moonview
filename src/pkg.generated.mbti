@@ -160,6 +160,7 @@ pub(all) enum WebViewError {
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
+  ProcessFailed(WebViewError)
   PageMessage(String)
   NavigationStarting(String)
   SourceChanged(String)

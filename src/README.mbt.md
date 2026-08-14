@@ -15,6 +15,7 @@ let options = WebViewOptions::new(
   on_event=event => match event {
     WebViewEvent::Ready => println("ready")
     WebViewEvent::CreationFailed(_error) => println("failed")
+    WebViewEvent::ProcessFailed(_error) => println("browser process failed")
     _ => ()
   },
 )
@@ -28,6 +29,10 @@ match WebView::create(parent_handle, options) {
 Control methods return `Ok(())` only after the native backend accepts or queues
 the command for a live view. Navigation and JavaScript outcomes remain
 asynchronous and are reported through `WebViewEvent`.
+
+`ProcessFailed` is terminal. On WebView2 runtime failures, Moonview stops
+accepting commands for that view. Destroy it on its owner UI thread, then
+create a replacement explicitly; Moonview never attempts background recovery.
 
 ## Resource Limits
 

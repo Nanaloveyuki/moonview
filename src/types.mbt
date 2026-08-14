@@ -159,6 +159,9 @@ pub(all) enum MediaPermissionDecision {
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
+  /// The embedded browser process became unusable. Destroy this WebView and
+  /// create a replacement explicitly; Moonview never recreates it implicitly.
+  ProcessFailed(WebViewError)
   PageMessage(String)
   NavigationStarting(String)
   SourceChanged(String)
