@@ -61,11 +61,29 @@ std::atomic<uint64_t> g_next_view_handle{1};
 
 moonbit_bytes_t make_bytes(const std::string &value) {
   moonbit_bytes_t bytes = moonbit_make_bytes(static_cast<int32_t>(value.size()), 0);
-  if (!value.empty()) {
+  if (bytes != nullptr && !value.empty()) {
     std::memcpy(bytes, value.data(), value.size());
   }
   return bytes;
 }
+
+struct OwnedBytes {
+  explicit OwnedBytes(const std::string &value) : bytes(make_bytes(value)) {}
+  ~OwnedBytes() {
+    if (bytes != nullptr) {
+      moonbit_decref(bytes);
+    }
+  }
+
+  OwnedBytes(const OwnedBytes &) = delete;
+  OwnedBytes &operator=(const OwnedBytes &) = delete;
+
+  bool valid() const { return bytes != nullptr; }
+  moonbit_bytes_t get() const { return bytes; }
+
+ private:
+  moonbit_bytes_t bytes;
+};
 
 std::string bytes_to_utf8(moonbit_bytes_t bytes) {
   if (bytes == nullptr) {
@@ -309,20 +327,36 @@ void emit_event(const std::shared_ptr<View> &view, EventKind kind,
       g_event_trampoline == nullptr || g_event_closure == nullptr) {
     return;
   }
-  g_event_trampoline(g_event_closure, view->handle, kind, make_bytes(value),
-                     make_bytes(detail), code);
+  OwnedBytes value_bytes(value);
+  OwnedBytes detail_bytes(detail);
+  if (!value_bytes.valid() || !detail_bytes.valid()) {
+    return;
+  }
+  g_event_trampoline(g_event_closure, view->handle, kind, value_bytes.get(),
+                     detail_bytes.get(), code);
 }
 
 int32_t navigation_allowed(const std::shared_ptr<View> &view, const std::string &uri) {
   if (g_navigation_trampoline == nullptr || g_navigation_closure == nullptr) {
     return 1;
   }
-  return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(uri));
+  OwnedBytes uri_bytes(uri);
+  if (!uri_bytes.valid()) {
+    return 0;
+  }
+  return g_navigation_trampoline(g_navigation_closure, view->handle, uri_bytes.get());
 }
 
 bool navigate_new_window_in_place(const std::shared_ptr<View> &view, const std::string &uri) {
-  return g_new_window_trampoline != nullptr && g_new_window_closure != nullptr &&
-      g_new_window_trampoline(g_new_window_closure, view->handle, make_bytes(uri)) == 1;
+  if (g_new_window_trampoline == nullptr || g_new_window_closure == nullptr) {
+    return false;
+  }
+  OwnedBytes uri_bytes(uri);
+  if (!uri_bytes.valid()) {
+    return false;
+  }
+  return g_new_window_trampoline(g_new_window_closure, view->handle,
+                                 uri_bytes.get()) == 1;
 }
 
 void fail_waiting_views(const EnvironmentKey &key, HRESULT result, const char *operation);
@@ -1106,8 +1140,9 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_init(uint64_t handle,
     view->document_scripts.push_back(text);
     return 1;
   }
-  view->webview->AddScriptToExecuteOnDocumentCreated(text.c_str(), nullptr);
-  return 1;
+  const HRESULT result =
+      view->webview->AddScriptToExecuteOnDocumentCreated(text.c_str(), nullptr);
+  return SUCCEEDED(result) ? 1 : 0;
 }
 
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_windows_set_zoom(uint64_t handle,

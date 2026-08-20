@@ -28,6 +28,9 @@ struct PendingProtocolRequest {
 };
 
 std::map<std::string, std::shared_ptr<PendingProtocolRequest>> g_pending_protocols;
+bool complete_protocol_response(const std::string &request_id, int32_t status,
+                                const std::string &headers, const std::string &body);
+
 int32_t moonview_media_permission_kind(COREWEBVIEW2_PERMISSION_KIND kind) {
   if (kind == COREWEBVIEW2_PERMISSION_KIND_CAMERA) {
     return 1;
@@ -48,8 +51,12 @@ int32_t media_permission_allowed(const std::shared_ptr<View> &view,
   if (g_media_permission_trampoline == nullptr || g_media_permission_closure == nullptr) {
     return 0;
   }
+  OwnedBytes origin_bytes(origin);
+  if (!origin_bytes.valid()) {
+    return 0;
+  }
   return g_media_permission_trampoline(g_media_permission_closure, view->handle,
-                                       moonview_kind, make_bytes(origin)) == 1;
+                                       moonview_kind, origin_bytes.get()) == 1;
 }
 
 void emit_protocol_request(const std::shared_ptr<View> &view,
@@ -63,9 +70,22 @@ void emit_protocol_request(const std::shared_ptr<View> &view,
       g_protocol_closure == nullptr) {
     return;
   }
-  g_protocol_trampoline(g_protocol_closure, view->handle, make_bytes(request_id),
-                        make_bytes(scheme), make_bytes(method), make_bytes(uri),
-                        make_bytes(headers), make_bytes(body));
+  OwnedBytes request_id_bytes(request_id);
+  OwnedBytes scheme_bytes(scheme);
+  OwnedBytes method_bytes(method);
+  OwnedBytes uri_bytes(uri);
+  OwnedBytes headers_bytes(headers);
+  OwnedBytes body_bytes(body);
+  if (!request_id_bytes.valid() || !scheme_bytes.valid() || !method_bytes.valid() ||
+      !uri_bytes.valid() || !headers_bytes.valid() || !body_bytes.valid()) {
+    const std::string empty_headers(4, '\0');
+    complete_protocol_response(request_id, 500, empty_headers,
+                               "Unable to allocate protocol callback data");
+    return;
+  }
+  g_protocol_trampoline(g_protocol_closure, view->handle, request_id_bytes.get(),
+                        scheme_bytes.get(), method_bytes.get(), uri_bytes.get(),
+                        headers_bytes.get(), body_bytes.get());
 }
 
 void write_u32_be(std::string *output, uint32_t value) {

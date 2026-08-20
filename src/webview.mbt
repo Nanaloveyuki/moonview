@@ -105,10 +105,22 @@ pub fn WebView::create_in_context(
               register_view(handle, options)
               let view = WebView::{ handle, owner_thread }
               if !options.visible {
-                ignore(native_set_visible(handle, false))
+                if native_set_visible(handle, false) == 0 {
+                  ignore(native_destroy(handle))
+                  unregister_view(handle)
+                  Err(
+                    WebViewError::NativeFailure(
+                      0, "WebView initial visibility setup failed",
+                    ),
+                  )
+                } else {
+                  native_start(handle)
+                  Ok(view)
+                }
+              } else {
+                native_start(handle)
+                Ok(view)
               }
-              native_start(handle)
-              Ok(view)
             }
           }
         }

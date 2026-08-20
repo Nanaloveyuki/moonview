@@ -174,6 +174,7 @@ pub fn AndroidWebView::create(
     resource_limits: options.resource_limits,
     on_event: options.on_event,
   })
+  errdefer cancel_partial_create(handle)
   @webview.create(
     handle,
     options.trusted_origin,
@@ -181,24 +182,14 @@ pub fn AndroidWebView::create(
     document_start_scripts=options.document_start_scripts,
     resource_limits=native_resource_limits(options.resource_limits),
     operation_id~,
-  ) catch {
-    error => {
-      cancel_partial_create(handle)
-      raise error
-    }
-  }
+  )
   @webview.set_bounds(
     handle,
     options.bounds.x,
     options.bounds.y,
     options.bounds.width,
     options.bounds.height,
-  ) catch {
-    error => {
-      cancel_partial_create(handle)
-      raise error
-    }
-  }
+  )
   { handle, }
 }
 

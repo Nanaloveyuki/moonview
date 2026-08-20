@@ -78,11 +78,29 @@ void release_object(id object) {
 
 moonbit_bytes_t make_bytes(const std::string &value) {
   moonbit_bytes_t bytes = moonbit_make_bytes(static_cast<int32_t>(value.size()), 0);
-  if (!value.empty()) {
+  if (bytes != nullptr && !value.empty()) {
     std::memcpy(bytes, value.data(), value.size());
   }
   return bytes;
 }
+
+struct OwnedBytes {
+  explicit OwnedBytes(const std::string &value) : bytes(make_bytes(value)) {}
+  ~OwnedBytes() {
+    if (bytes != nullptr) {
+      moonbit_decref(bytes);
+    }
+  }
+
+  OwnedBytes(const OwnedBytes &) = delete;
+  OwnedBytes &operator=(const OwnedBytes &) = delete;
+
+  bool valid() const { return bytes != nullptr; }
+  moonbit_bytes_t get() const { return bytes; }
+
+ private:
+  moonbit_bytes_t bytes;
+};
 
 std::string bytes_to_utf8(moonbit_bytes_t bytes) {
   if (bytes == nullptr) {
@@ -233,20 +251,35 @@ void emit_event(View *view, EventKind kind, const std::string &value = "",
   if (view == nullptr || g_event_trampoline == nullptr || g_event_closure == nullptr) {
     return;
   }
-  g_event_trampoline(g_event_closure, view->handle, kind, make_bytes(value),
-                     make_bytes(detail), code);
+  OwnedBytes value_bytes(value);
+  OwnedBytes detail_bytes(detail);
+  if (!value_bytes.valid() || !detail_bytes.valid()) {
+    return;
+  }
+  g_event_trampoline(g_event_closure, view->handle, kind, value_bytes.get(),
+                     detail_bytes.get(), code);
 }
 
 bool allow_navigation(View *view, const std::string &url) {
   if (g_navigation_trampoline == nullptr || g_navigation_closure == nullptr) {
     return true;
   }
-  return g_navigation_trampoline(g_navigation_closure, view->handle, make_bytes(url)) != 0;
+  OwnedBytes url_bytes(url);
+  if (!url_bytes.valid()) {
+    return false;
+  }
+  return g_navigation_trampoline(g_navigation_closure, view->handle, url_bytes.get()) != 0;
 }
 
 bool navigate_new_window_in_place(View *view, const std::string &url) {
-  return g_new_window_trampoline != nullptr && g_new_window_closure != nullptr &&
-      g_new_window_trampoline(g_new_window_closure, view->handle, make_bytes(url)) == 1;
+  if (g_new_window_trampoline == nullptr || g_new_window_closure == nullptr) {
+    return false;
+  }
+  OwnedBytes url_bytes(url);
+  if (!url_bytes.valid()) {
+    return false;
+  }
+  return g_new_window_trampoline(g_new_window_closure, view->handle, url_bytes.get()) == 1;
 }
 
 bool valid_custom_scheme(const std::string &scheme) {
@@ -339,8 +372,12 @@ bool allow_media_permission(View *view, int32_t kind, const std::string &origin)
       g_media_permission_closure == nullptr) {
     return false;
   }
+  OwnedBytes origin_bytes(origin);
+  if (!origin_bytes.valid()) {
+    return false;
+  }
   return g_media_permission_trampoline(g_media_permission_closure, view->handle,
-                                       kind, make_bytes(origin)) != 0;
+                                       kind, origin_bytes.get()) != 0;
 }
 
 std::string webview_url(id webview) {
@@ -605,10 +642,21 @@ void scheme_task_started(id, SEL, id webview, id task) {
                     "Custom-scheme request body exceeds its configured limit");
     return;
   }
-  g_protocol_trampoline(g_protocol_closure, view->handle, make_bytes(request_id),
-      make_bytes(utf8_string(scheme)), make_bytes(utf8_string(method)),
-      make_bytes(utf8_string(absolute)), make_bytes(encode_headers(headers)),
-      make_bytes(body_data == nullptr ? "" : std::string(body_data, body_size)));
+  OwnedBytes request_id_bytes(request_id);
+  OwnedBytes scheme_bytes(utf8_string(scheme));
+  OwnedBytes method_bytes(utf8_string(method));
+  OwnedBytes uri_bytes(utf8_string(absolute));
+  OwnedBytes headers_bytes(encode_headers(headers));
+  OwnedBytes body_bytes(body_data == nullptr ? "" : std::string(body_data, body_size));
+  if (!request_id_bytes.valid() || !scheme_bytes.valid() || !method_bytes.valid() ||
+      !uri_bytes.valid() || !headers_bytes.valid() || !body_bytes.valid()) {
+    finish_protocol(view, request_id, 500, std::string(4, '\0'),
+                    "Unable to allocate protocol callback data");
+    return;
+  }
+  g_protocol_trampoline(g_protocol_closure, view->handle, request_id_bytes.get(),
+      scheme_bytes.get(), method_bytes.get(), uri_bytes.get(), headers_bytes.get(),
+      body_bytes.get());
 }
 
 void scheme_task_stopped(id, SEL, id webview, id task) {
