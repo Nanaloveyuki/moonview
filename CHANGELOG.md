@@ -2,6 +2,14 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.9
+
+- Pin the project to MoonBit 0.10.9 and Ajni 0.2.3.
+- Release native callback `Bytes` after synchronous event, navigation,
+  permission, and custom-protocol callbacks on every desktop backend.
+- Propagate initial visibility and WebView2 initialization-script failures
+  instead of silently accepting them.
+
 ## 0.1.0-beta.8
 
 - Report WebView2 browser-process failures through terminal

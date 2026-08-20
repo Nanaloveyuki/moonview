@@ -9,7 +9,7 @@ The host owns those responsibilities; `moonview` owns the child WebView.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.8
+moon add Nanaloveyuki/moonview@0.1.0-beta.9
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as

@@ -76,10 +76,19 @@ void on_controller_attached(const char *web_tag, void *user_data) {
   const uint64_t handle = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(user_data));
   View *view = find_view(handle);
   if (view == nullptr || view->detached || web_tag == nullptr || view->tag != web_tag ||
-      g_event_trampoline == nullptr) {
+      g_event_trampoline == nullptr || g_event_closure == nullptr) {
     return;
   }
-  g_event_trampoline(g_event_closure, handle, kReady, empty_bytes(), empty_bytes(), 0);
+  moonbit_bytes_t value = empty_bytes();
+  moonbit_bytes_t detail = empty_bytes();
+  if (value == nullptr || detail == nullptr) {
+    if (value != nullptr) moonbit_decref(value);
+    if (detail != nullptr) moonbit_decref(detail);
+    return;
+  }
+  g_event_trampoline(g_event_closure, handle, kReady, value, detail, 0);
+  moonbit_decref(value);
+  moonbit_decref(detail);
 }
 
 void on_destroy(const char *web_tag, void *user_data) {
