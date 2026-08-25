@@ -1,1 +1,4 @@
+# MoonBit regenerates public interface snapshots with LF line endings.
+*.mbti text eol=lf
+
 *.sh text eol=lf
