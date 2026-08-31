@@ -392,10 +392,10 @@ fn dispatch_event_kind(handle : Int64, kind : @webview.EventKind) -> Unit {
         ScriptResult(operation_id, result) =>
           (registration.on_event)(ScriptResult(operation_id, result))
         PageMessage(body, origin, is_main_frame) =>
-          (registration.on_event)(PageMessage({ body, origin, is_main_frame }))
+          (registration.on_event)(PageMessage({ body, origin, is_main_frame, }))
         AssetRequest(request) =>
           (registration.on_event)(
-            AssetRequest({ id: request.id, path: request.path }),
+            AssetRequest({ id: request.id, path: request.path, }),
           )
         Failed(message) => {
           update_lifecycle(handle, Failed(message))

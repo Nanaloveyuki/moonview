@@ -105,12 +105,12 @@ pub fn AndroidBounds::new(
   width~ : Int,
   height~ : Int,
 ) -> AndroidBounds {
-  { x, y, width, height }
+  { x, y, width, height, }
 }
 
 ///|
 pub fn AndroidHeader::new(name~ : String, value~ : String) -> AndroidHeader {
-  { name, value }
+  { name, value, }
 }
 
 ///|
@@ -121,7 +121,7 @@ pub fn AndroidAssetResponse::new(
   headers? : Array[AndroidHeader] = [],
   body? : Bytes = b"",
 ) -> AndroidAssetResponse {
-  { status, mime_type, encoding, headers, body }
+  { status, mime_type, encoding, headers, body, }
 }
 
 ///|
