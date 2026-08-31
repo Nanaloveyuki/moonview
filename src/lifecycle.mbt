@@ -324,7 +324,7 @@ fn decode_http_headers(bytes : Bytes) -> Array[HttpHeader] {
     }
     let value = decode_utf8(bytes[offset:offset + value_length])
     offset += value_length
-    headers.push({ name, value })
+    headers.push({ name, value, })
   }
   if offset == bytes.length() {
     headers

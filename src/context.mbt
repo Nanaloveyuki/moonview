@@ -24,7 +24,7 @@ let persistent_context_ids : Map[String, UInt64] = Map([])
 /// Windows and Linux; macOS rejects it rather than silently using another path.
 pub fn WebContext::persistent(data_directory? : String = "") -> WebContext {
   if data_directory.length() == 0 {
-    { id: 0UL, storage: Persistent, data_directory }
+    { id: 0UL, storage: Persistent, data_directory, }
   } else {
     let id = match persistent_context_ids.get(data_directory) {
       Some(id) => id
@@ -35,7 +35,7 @@ pub fn WebContext::persistent(data_directory? : String = "") -> WebContext {
         id
       }
     }
-    { id, storage: Persistent, data_directory }
+    { id, storage: Persistent, data_directory, }
   }
 }
 
@@ -47,5 +47,5 @@ pub fn WebContext::persistent(data_directory? : String = "") -> WebContext {
 pub fn WebContext::ephemeral() -> WebContext {
   let id = next_context_id.val
   next_context_id.val = id + 1UL
-  { id, storage: Ephemeral, data_directory: "" }
+  { id, storage: Ephemeral, data_directory: "", }
 }

@@ -217,7 +217,7 @@ pub fn OhosAttachOptions::new(
 
 ///|
 pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
-  { x, y, width, height }
+  { x, y, width, height, }
 }
 
 ///|
@@ -226,7 +226,7 @@ pub fn NavigationState::new(
   can_go_back? : Bool = false,
   can_go_forward? : Bool = false,
 ) -> NavigationState {
-  { url, can_go_back, can_go_forward }
+  { url, can_go_back, can_go_forward, }
 }
 
 ///|
@@ -234,7 +234,7 @@ pub fn FileDialogFilter::new(
   name~ : String,
   extensions~ : Array[String],
 ) -> FileDialogFilter {
-  { name, extensions }
+  { name, extensions, }
 }
 
 ///|
@@ -245,12 +245,12 @@ pub fn FileDialogOptions::new(
   default_name? : String? = None,
   initial_directory? : String? = None,
 ) -> FileDialogOptions {
-  { kind, title, filters, default_name, initial_directory }
+  { kind, title, filters, default_name, initial_directory, }
 }
 
 ///|
 pub fn HttpHeader::new(name~ : String, value~ : String) -> HttpHeader {
-  { name, value }
+  { name, value, }
 }
 
 ///|
@@ -259,7 +259,7 @@ pub fn ProtocolResponse::new(
   headers? : Array[HttpHeader] = [],
   body? : Bytes = b"",
 ) -> ProtocolResponse {
-  { status, headers, body }
+  { status, headers, body, }
 }
 
 ///|

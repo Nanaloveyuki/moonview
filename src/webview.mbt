@@ -103,7 +103,7 @@ pub fn WebView::create_in_context(
                 custom_schemes_locked.set(0, ())
               }
               register_view(handle, options)
-              let view = WebView::{ handle, owner_thread }
+              let view = WebView::{ handle, owner_thread, }
               if !options.visible {
                 if native_set_visible(handle, false) == 0 {
                   ignore(native_destroy(handle))
@@ -225,7 +225,7 @@ pub fn WebView::attach_ohos(
     } else {
       register_ohos_view(handle, options)
       native_start_ohos(handle)
-      Ok(WebView::{ handle, owner_thread: 0UL })
+      Ok(WebView::{ handle, owner_thread: 0UL, })
     }
   }
 }
