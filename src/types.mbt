@@ -116,7 +116,9 @@ pub(all) struct ProtocolResponse {
 } derive(Eq, Debug)
 
 ///|
-/// Per-WebView resource limits enforced by the desktop native backends.
+/// Per-WebView resource limits for desktop native backends. The pending-command
+/// limits are enforced by Windows; the protocol request body limit is enforced
+/// by Windows, macOS, and Linux.
 ///
 /// A value of `0` disables the corresponding limit. Negative values are
 /// rejected by `WebView::create`.
@@ -159,8 +161,9 @@ pub(all) enum MediaPermissionDecision {
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
-  /// The embedded browser process became unusable. Destroy this WebView and
-  /// create a replacement explicitly; Moonview never recreates it implicitly.
+  /// The embedded browser process became unusable. Windows reports this for
+  /// WebView2. Destroy this WebView and create a replacement explicitly;
+  /// Moonview never recreates it implicitly.
   ProcessFailed(WebViewError)
   PageMessage(String)
   NavigationStarting(String)

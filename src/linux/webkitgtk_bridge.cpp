@@ -142,6 +142,7 @@ std::string bridge_script() {
 
 struct View {
   uint64_t handle = 0;
+  uint64_t context_id = 0;
   GtkFixed *parent = nullptr;
   WebKitWebView *webview = nullptr;
   WebKitUserContentManager *content_manager = nullptr;
@@ -158,6 +159,8 @@ struct View {
 
 struct Context {
   WebKitWebContext *web_context = nullptr;
+  size_t view_count = 0;
+  bool owned = false;
 };
 
 std::unordered_map<uint64_t, std::unique_ptr<View>> g_views;
@@ -177,12 +180,14 @@ WebKitWebContext *context_for(uint64_t context_id, bool ephemeral,
     context.web_context = webkit_web_context_get_default();
   } else if (ephemeral) {
     context.web_context = webkit_web_context_new_ephemeral();
+    context.owned = true;
   } else {
     WebKitWebsiteDataManager *manager = webkit_website_data_manager_new(
         "base-data-directory", data_directory.c_str(),
         "base-cache-directory", data_directory.c_str(), nullptr);
     context.web_context = webkit_web_context_new_with_website_data_manager(manager);
     g_object_unref(manager);
+    context.owned = true;
   }
   if (context.web_context == nullptr) {
     return nullptr;
@@ -191,6 +196,35 @@ WebKitWebContext *context_for(uint64_t context_id, bool ephemeral,
   WebKitWebContext *result = context.web_context;
   g_contexts.emplace(context_id, context);
   return result;
+}
+
+void retain_context(uint64_t context_id) {
+  const auto found = g_contexts.find(context_id);
+  if (found != g_contexts.end()) {
+    ++found->second.view_count;
+  }
+}
+
+void release_context_if_unused(uint64_t context_id) {
+  const auto found = g_contexts.find(context_id);
+  if (context_id == 0 || found == g_contexts.end() || found->second.view_count != 0) {
+    return;
+  }
+  if (found->second.owned && found->second.web_context != nullptr) {
+    g_object_unref(found->second.web_context);
+  }
+  g_contexts.erase(found);
+}
+
+void release_context(uint64_t context_id) {
+  const auto found = g_contexts.find(context_id);
+  if (found == g_contexts.end()) {
+    return;
+  }
+  if (found->second.view_count > 0) {
+    --found->second.view_count;
+  }
+  release_context_if_unused(context_id);
 }
 
 View *find_view(uint64_t handle) {
@@ -764,6 +798,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   }
   auto view = std::make_unique<View>();
   view->handle = g_next_view_handle.fetch_add(1);
+  view->context_id = context_id;
   view->max_protocol_request_body_bytes = max_protocol_request_body_bytes > 0
       ? static_cast<size_t>(max_protocol_request_body_bytes) : 0;
   view->parent = GTK_FIXED(parent_widget);
@@ -771,6 +806,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   if (!webkit_user_content_manager_register_script_message_handler(view->content_manager,
                                                                      "moonview")) {
     g_object_unref(view->content_manager);
+    release_context_if_unused(context_id);
     return 0;
   }
   view->webview = WEBKIT_WEB_VIEW(g_object_new(
@@ -778,6 +814,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
       "user-content-manager", view->content_manager, nullptr));
   if (view->webview == nullptr) {
     g_object_unref(view->content_manager);
+    release_context_if_unused(context_id);
     return 0;
   }
   const std::string configured_user_agent = bytes_to_utf8(user_agent);
@@ -803,6 +840,7 @@ extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_linux_create(
   const uint64_t handle = view->handle;
   g_webview_views.emplace(view->webview, view.get());
   g_views.emplace(handle, std::move(view));
+  retain_context(context_id);
   return handle;
 }
 
@@ -834,7 +872,9 @@ extern "C" MOONBIT_FFI_EXPORT int32_t moonview_linux_destroy(uint64_t handle) {
   g_webview_views.erase(view->webview);
   gtk_widget_destroy(GTK_WIDGET(view->webview));
   g_object_unref(view->content_manager);
+  const uint64_t context_id = view->context_id;
   g_views.erase(found);
+  release_context(context_id);
   return 1;
 }
 

@@ -144,6 +144,11 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_start(uint64_t handle) {
   component->onDestroy(view->tag.c_str(), on_destroy, user_data);
 }
 
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_is_attached(uint64_t handle) {
+  View *view = find_view(handle);
+  return view != nullptr && !view->detached ? 1 : 0;
+}
+
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_destroy(uint64_t handle) {
   View *view = find_view(handle);
   if (view == nullptr) {
@@ -199,6 +204,7 @@ extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_install_media_permission_callba
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_available() { return 0; }
 extern "C" MOONBIT_FFI_EXPORT uint64_t moonview_ohos_attach(moonbit_bytes_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT void moonview_ohos_start(uint64_t) {}
+extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_is_attached(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_destroy(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_reload(uint64_t) { return 0; }
 extern "C" MOONBIT_FFI_EXPORT int32_t moonview_ohos_eval(uint64_t, moonbit_bytes_t) { return 0; }

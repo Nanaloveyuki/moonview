@@ -49,6 +49,14 @@ fn native_is_ohos() -> Bool {
 }
 
 ///|
+fn native_ohos_attached(handle : UInt64) -> Bool {
+  match active_backend() {
+    NativeBackend::Ohos => @ohos.is_attached(handle) != 0
+    _ => false
+  }
+}
+
+///|
 fn install_native_callbacks(
   event_callback : (UInt64, Int, Bytes, Bytes, Int) -> Unit,
   navigation_callback : (UInt64, Bytes) -> Int,

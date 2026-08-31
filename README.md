@@ -80,9 +80,11 @@ Control methods return `Ok(())` only when the native backend accepts or queues
 the command for a live view. Page navigation and JavaScript execution remain
 asynchronous; observe their final outcomes through `WebViewEvent`.
 
-`ProcessFailed` is terminal. Destroy the failed WebView on its owner UI thread,
-then create a replacement explicitly. Moonview does not recreate browser
-processes in the background.
+`ProcessFailed` is terminal. The current desktop event adapters report it for
+WebView2 on Windows; macOS and Linux do not expose an equivalent process
+termination event yet. Destroy a failed WebView on its owner UI thread, then
+create a replacement explicitly. Moonview does not recreate browser processes
+in the background.
 
 ## Browser Data Contexts
 
@@ -133,7 +135,9 @@ layout, visibility, focus, and media-permission ownership. Navigation, HTML
 loading, init scripts, history, zoom, page messaging, custom schemes, and
 script-result callbacks return `Unsupported` until their thread-safe native
 adapters are implemented. `destroy` detaches Moonview only; it never destroys
-the ArkUI component.
+the ArkUI component. If ArkUI destroys the component first, `view.lifecycle()`
+reports `Destroyed`; call `destroy()` afterward to release Moonview's
+registration.
 
 ## Page Communication
 
@@ -165,11 +169,13 @@ reported as `null`.
 
 ## Resource Limits
 
-Each desktop WebView defaults to 256 commands queued before readiness, 4 MiB
-of queued command storage, and a 4 MiB custom-scheme request body limit. Pass
-`WebViewResourceLimits` through `WebViewOptions` to configure these values;
-`0` disables an individual limit and negative values reject creation with
-`NativeFailure`. Windows, macOS, and Linux enforce this policy.
+Each desktop WebView defaults to a 4 MiB custom-scheme request body limit.
+Windows also defaults to 256 commands queued before readiness and 4 MiB of
+queued command storage. Pass `WebViewResourceLimits` through `WebViewOptions`
+to configure these values; `0` disables an individual limit and negative values
+reject creation with `NativeFailure`. The protocol body limit applies on
+Windows, macOS, and Linux; the pending-command limits currently apply only on
+Windows.
 
 ```moonbit nocheck
 let limits = @moonview.WebViewResourceLimits::new(
@@ -307,5 +313,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.8` is an API preview. Compatibility may change before stable
+`0.1.0-beta.9` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.

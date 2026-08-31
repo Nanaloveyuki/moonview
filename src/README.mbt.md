@@ -30,17 +30,21 @@ Control methods return `Ok(())` only after the native backend accepts or queues
 the command for a live view. Navigation and JavaScript outcomes remain
 asynchronous and are reported through `WebViewEvent`.
 
-`ProcessFailed` is terminal. On WebView2 runtime failures, Moonview stops
-accepting commands for that view. Destroy it on its owner UI thread, then
-create a replacement explicitly; Moonview never attempts background recovery.
+`ProcessFailed` is terminal. The current desktop event adapters report it for
+WebView2 on Windows; macOS and Linux do not expose an equivalent process
+termination event yet. On Windows runtime failures, Moonview stops accepting
+commands for that view. Destroy it on its owner UI thread, then create a
+replacement explicitly; Moonview never attempts background recovery.
 
 ## Resource Limits
 
-Desktop backends limit each WebView to 256 commands queued before readiness,
-4 MiB of queued command storage, and 4 MiB per custom-scheme request body.
-Configure or disable individual limits with `WebViewResourceLimits`; `0`
-disables one limit, while negative values cause `WebView::create` to return
-`NativeFailure`. The limits currently apply to Windows, macOS, and Linux.
+Each desktop WebView has a 4 MiB custom-scheme request body limit. Windows also
+limits each WebView to 256 commands queued before readiness and 4 MiB of queued
+command storage. Configure or disable individual limits with
+`WebViewResourceLimits`; `0` disables one limit, while negative values cause
+`WebView::create` to return `NativeFailure`. The protocol body limit applies to
+Windows, macOS, and Linux; the pending-command limits currently apply only on
+Windows.
 
 ```moonbit nocheck
 ///|
@@ -103,7 +107,9 @@ match WebView::attach_ohos("main-web", options) {
 The experimental API 12 adapter supports attach, `reload`, fire-and-forget
 `eval`, and detachment. ArkUI owns source, layout, visibility, and permissions;
 the remaining desktop-style controls return `Unsupported`. `destroy` detaches
-Moonview and does not destroy the ArkUI `Web` component.
+Moonview and does not destroy the ArkUI `Web` component. If ArkUI destroys the
+component first, `WebView::lifecycle()` reports `Destroyed`; call `destroy()`
+afterward to release Moonview's registration.
 
 ## Application Resources
 

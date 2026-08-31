@@ -56,6 +56,9 @@ pub extern "C" fn attach(web_tag : Bytes) -> UInt64 = "moonview_ohos_attach"
 pub extern "C" fn start(view : UInt64) -> Unit = "moonview_ohos_start"
 
 ///|
+pub extern "C" fn is_attached(view : UInt64) -> Int = "moonview_ohos_is_attached"
+
+///|
 pub extern "C" fn destroy(view : UInt64) -> Int = "moonview_ohos_destroy"
 
 ///|

@@ -1,7 +1,10 @@
 import {
   "Nanaloveyuki/ajni",
   "Nanaloveyuki/ajni/webview",
-  "moonbitlang/core/quickcheck",
 }
+
+import {
+  "moonbitlang/core/quickcheck",
+} for "wbtest"
 
 supported_targets = "native"
