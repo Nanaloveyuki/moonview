@@ -1,10 +1,13 @@
 import {
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/quickcheck",
   "Nanaloveyuki/moonview/linux",
   "Nanaloveyuki/moonview/macos",
   "Nanaloveyuki/moonview/ohos",
   "Nanaloveyuki/moonview/windows",
 }
+
+import {
+  "moonbitlang/core/quickcheck",
+} for "wbtest"
 
 supported_targets = "+native"

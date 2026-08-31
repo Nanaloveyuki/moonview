@@ -67,7 +67,7 @@ pub fn WebView::create_in_context(
   } else if !available() {
     Err(WebViewError::Unavailable)
   } else {
-    match resource_limits_error(options.resource_limits) {
+    match create_options_error(options) {
       Some(error) => Err(error)
       None =>
         match context_error(context) {
@@ -103,7 +103,7 @@ pub fn WebView::create_in_context(
                 custom_schemes_locked.set(0, ())
               }
               register_view(handle, options)
-              let view = WebView::{ handle, owner_thread }
+              let view = WebView::{ handle, owner_thread, }
               if !options.visible {
                 if native_set_visible(handle, false) == 0 {
                   ignore(native_destroy(handle))
@@ -161,6 +161,27 @@ fn context_error(context : WebContext) -> WebViewError? {
 }
 
 ///|
+fn bounds_error(bounds : Rect) -> WebViewError? {
+  if bounds.width < 1 || bounds.height < 1 {
+    Some(
+      WebViewError::NativeFailure(
+        0, "WebView bounds must have positive width and height",
+      ),
+    )
+  } else {
+    None
+  }
+}
+
+///|
+fn create_options_error(options : WebViewOptions) -> WebViewError? {
+  match bounds_error(options.bounds) {
+    Some(error) => Some(error)
+    None => resource_limits_error(options.resource_limits)
+  }
+}
+
+///|
 fn resource_limits_error(limits : WebViewResourceLimits) -> WebViewError? {
   if limits.max_pending_commands < 0 ||
     limits.max_pending_command_bytes < 0 ||
@@ -204,14 +225,18 @@ pub fn WebView::attach_ohos(
     } else {
       register_ohos_view(handle, options)
       native_start_ohos(handle)
-      Ok(WebView::{ handle, owner_thread: 0UL })
+      Ok(WebView::{ handle, owner_thread: 0UL, })
     }
   }
 }
 
 ///|
 pub fn WebView::lifecycle(self : WebView) -> WebViewLifecycle {
-  lifecycle_of(self.handle)
+  if native_is_ohos() && !native_ohos_attached(self.handle) {
+    WebViewLifecycle::Destroyed
+  } else {
+    lifecycle_of(self.handle)
+  }
 }
 
 ///|
@@ -226,9 +251,19 @@ pub fn WebView::set_bounds(
   self : WebView,
   bounds : Rect,
 ) -> Result[Unit, WebViewError] {
-  self.with_handle("set bounds", handle => {
-    native_set_bounds(handle, bounds.x, bounds.y, bounds.width, bounds.height)
-  })
+  match bounds_error(bounds) {
+    Some(error) => Err(error)
+    None =>
+      self.with_handle("set bounds", handle => {
+        native_set_bounds(
+          handle,
+          bounds.x,
+          bounds.y,
+          bounds.width,
+          bounds.height,
+        )
+      })
+  }
 }
 
 ///|
@@ -434,6 +469,7 @@ pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
     Err(WebViewError::WrongThread)
   } else if self.lifecycle() == WebViewLifecycle::Destroyed {
+    unregister_view(self.handle)
     Ok(())
   } else if native_destroy(self.handle) != 0 {
     unregister_view(self.handle)

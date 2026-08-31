@@ -18,6 +18,8 @@ pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Byte
 
 pub fn install_protocol_callback(FuncRef[((UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit, UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit], (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit) -> Unit
 
+pub fn is_attached(UInt64) -> Int
+
 pub fn reload(UInt64) -> Int
 
 pub fn start(UInt64) -> Unit
@@ -29,4 +31,3 @@ pub fn start(UInt64) -> Unit
 // Type aliases
 
 // Traits
-

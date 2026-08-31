@@ -259,7 +259,7 @@ test "options preserve the configured user agent" {
 
 ///|
 test "zoom factors must be positive" {
-  let view = WebView::{ handle: 9010, owner_thread: 0UL }
+  let view = WebView::{ handle: 9010, owner_thread: 0UL, }
   assert_eq(
     view.set_zoom_factor(0.0),
     Err(

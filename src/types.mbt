@@ -116,7 +116,9 @@ pub(all) struct ProtocolResponse {
 } derive(Eq, Debug)
 
 ///|
-/// Per-WebView resource limits enforced by the desktop native backends.
+/// Per-WebView resource limits for desktop native backends. The pending-command
+/// limits are enforced by Windows; the protocol request body limit is enforced
+/// by Windows, macOS, and Linux.
 ///
 /// A value of `0` disables the corresponding limit. Negative values are
 /// rejected by `WebView::create`.
@@ -159,8 +161,9 @@ pub(all) enum MediaPermissionDecision {
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
-  /// The embedded browser process became unusable. Destroy this WebView and
-  /// create a replacement explicitly; Moonview never recreates it implicitly.
+  /// The embedded browser process became unusable. Windows reports this for
+  /// WebView2. Destroy this WebView and create a replacement explicitly;
+  /// Moonview never recreates it implicitly.
   ProcessFailed(WebViewError)
   PageMessage(String)
   NavigationStarting(String)
@@ -214,7 +217,7 @@ pub fn OhosAttachOptions::new(
 
 ///|
 pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
-  { x, y, width, height }
+  { x, y, width, height, }
 }
 
 ///|
@@ -223,7 +226,7 @@ pub fn NavigationState::new(
   can_go_back? : Bool = false,
   can_go_forward? : Bool = false,
 ) -> NavigationState {
-  { url, can_go_back, can_go_forward }
+  { url, can_go_back, can_go_forward, }
 }
 
 ///|
@@ -231,7 +234,7 @@ pub fn FileDialogFilter::new(
   name~ : String,
   extensions~ : Array[String],
 ) -> FileDialogFilter {
-  { name, extensions }
+  { name, extensions, }
 }
 
 ///|
@@ -242,12 +245,12 @@ pub fn FileDialogOptions::new(
   default_name? : String? = None,
   initial_directory? : String? = None,
 ) -> FileDialogOptions {
-  { kind, title, filters, default_name, initial_directory }
+  { kind, title, filters, default_name, initial_directory, }
 }
 
 ///|
 pub fn HttpHeader::new(name~ : String, value~ : String) -> HttpHeader {
-  { name, value }
+  { name, value, }
 }
 
 ///|
@@ -256,7 +259,7 @@ pub fn ProtocolResponse::new(
   headers? : Array[HttpHeader] = [],
   body? : Bytes = b"",
 ) -> ProtocolResponse {
-  { status, headers, body }
+  { status, headers, body, }
 }
 
 ///|
