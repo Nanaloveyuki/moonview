@@ -524,7 +524,14 @@ void script_message_received(id delegate, SEL, id, id message) {
   const char kind = text[0];
   const size_t separator = text.find(':', 2);
   if (kind == 'm') {
-    emit_event(found->second, kMessage, decode_base64(text.substr(2)));
+    id frame = send<id>(message, selector("frameInfo"));
+    std::string source;
+    if (frame != nil && send<bool>(frame, selector("isMainFrame"))) {
+      id request = send<id>(frame, selector("request"));
+      id url = request == nil ? nil : send<id>(request, selector("URL"));
+      if (url != nil) source = utf8_string(send<id>(url, selector("absoluteString")));
+    }
+    emit_event(found->second, kMessage, decode_base64(text.substr(2)), source);
   } else if ((kind == 'e' || kind == 'f') && separator != std::string::npos) {
     const std::string request_id = decode_base64(text.substr(2, separator - 2));
     const std::string payload = decode_base64(text.substr(separator + 1));

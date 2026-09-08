@@ -2,6 +2,15 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.10
+
+- Add callback-local `WebView::page_message_source()` provenance without changing
+  the existing `PageMessage(String)` event. Windows and macOS report the native
+  main-frame source; backends without provenance return `None`.
+- Verify provenance lifetime, nested callbacks, and native desktop smoke paths.
+- Include the previously merged property-based coverage and MoonBit ecosystem
+  boundary fixes.
+
 ## 0.1.0-beta.9
 
 - Pin the project to MoonBit 0.10.9 and Ajni 0.2.3.

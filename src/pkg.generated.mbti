@@ -138,6 +138,7 @@ pub fn WebView::navigate(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::navigation_state(Self) -> NavigationState
 pub fn WebView::open_devtools(Self) -> Result[Unit, WebViewError]
 pub fn WebView::open_print_dialog(Self) -> Result[Unit, WebViewError]
+pub fn WebView::page_message_source(Self) -> String?
 pub fn WebView::post_message(Self, String) -> Result[Unit, WebViewError]
 pub fn WebView::reload(Self) -> Result[Unit, WebViewError]
 pub fn WebView::respond_protocol(Self, String, ProtocolResponse) -> Result[Unit, WebViewError]
@@ -207,4 +208,3 @@ pub fn WebViewResourceLimits::new(max_pending_commands? : Int, max_pending_comma
 // Type aliases
 
 // Traits
-

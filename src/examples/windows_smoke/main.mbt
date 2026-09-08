@@ -16,9 +16,10 @@ fn main {
   if hwnd == 0UL {
     abort("moonview Windows contract: unable to create host window")
   }
-  let contract = @contract.Contract::new(success => {
-    finish(if success { 1 } else { 0 })
-  })
+  let contract = @contract.Contract::new(
+    success => finish(if success { 1 } else { 0 }),
+    require_message_source=true,
+  )
   if @env.get_env_var("MOONVIEW_FILE_DIALOG_SMOKE") == Some("1") {
     contract.enable_file_dialog_smoke()
   }

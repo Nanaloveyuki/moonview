@@ -16,9 +16,10 @@ fn main {
   if parent_handle == 0UL {
     abort("moonview macOS contract: unable to create AppKit host")
   }
-  let contract = @contract.Contract::new(success => {
-    finish(if success { 1 } else { 0 })
-  })
+  let contract = @contract.Contract::new(
+    success => finish(if success { 1 } else { 0 }),
+    require_message_source=true,
+  )
   match contract.start(@moonview.WebContext::ephemeral(), parent_handle) {
     Ok(_) => ()
     Err(_error) => {

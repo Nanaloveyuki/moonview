@@ -4,12 +4,17 @@
 existing window. It does not create a top-level window or run an event loop.
 The host owns those responsibilities; `moonview` owns the child WebView.
 
+During a `PageMessage` callback, `view.page_message_source()` returns the native
+main-frame source URL on Windows and macOS. It returns `None` outside that
+callback or when provenance is unavailable (currently Linux and OpenHarmony).
+Do not substitute the current or pending navigation URL when authorizing IPC.
+
 ## Install
 
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.9
+moon add Nanaloveyuki/moonview@0.1.0-beta.10
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as

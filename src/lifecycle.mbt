@@ -5,6 +5,7 @@ priv struct Registration {
   lifecycle : WebViewLifecycle
   navigation_state : NavigationState
   on_event : (WebViewEvent) -> Unit
+  page_message_source : Ref[String?]
   on_navigation : (String) -> NavigationDecision
   on_new_window : (String) -> NewWindowDecision
   on_media_permission : (MediaPermissionRequest) -> MediaPermissionDecision
@@ -36,6 +37,7 @@ fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
     lifecycle: WebViewLifecycle::Creating,
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
+    page_message_source: Ref(None),
     on_navigation: options.on_navigation,
     on_new_window: options.on_new_window,
     on_media_permission: options.on_media_permission,
@@ -48,6 +50,7 @@ fn register_ohos_view(handle : UInt64, options : OhosAttachOptions) -> Unit {
     lifecycle: WebViewLifecycle::Creating,
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
+    page_message_source: Ref(None),
     on_navigation: allow_navigation,
     on_new_window: deny_new_window,
     on_media_permission: deny_media_permission,
@@ -83,6 +86,7 @@ fn update_lifecycle(handle : UInt64, lifecycle : WebViewLifecycle) -> Unit {
         lifecycle,
         navigation_state: registration.navigation_state,
         on_event: registration.on_event,
+        page_message_source: registration.page_message_source,
         on_navigation: registration.on_navigation,
         on_new_window: registration.on_new_window,
         on_media_permission: registration.on_media_permission,
@@ -101,6 +105,17 @@ fn dispatch_native_event(
 ) -> Unit {
   match registrations.get(handle) {
     Some(registration) => {
+      let previous_source = registration.page_message_source.val
+      defer {
+        registration.page_message_source.val = previous_source
+      }
+      registration.page_message_source.val = if kind == 3 &&
+        code == 0 &&
+        !detail.is_empty() {
+        Some(decode_utf8(detail))
+      } else {
+        None
+      }
       let event = decode_native_event(kind, value, detail, code)
       match event {
         WebViewEvent::Ready => update_lifecycle(handle, WebViewLifecycle::Ready)
@@ -140,6 +155,7 @@ fn update_navigation_state(handle : UInt64, event : WebViewEvent) -> Unit {
         lifecycle: registration.lifecycle,
         navigation_state,
         on_event: registration.on_event,
+        page_message_source: registration.page_message_source,
         on_navigation: registration.on_navigation,
         on_new_window: registration.on_new_window,
         on_media_permission: registration.on_media_permission,

@@ -1,4 +1,34 @@
 ///|
+test "page message provenance is callback-local and survives nested callbacks" {
+  let handle = 987_654UL
+  let view = WebView::{ handle, owner_thread: native_thread_token(), }
+  let sources : Array[String?] = []
+  register_view(
+    handle,
+    WebViewOptions::new(bounds=Rect::new(x=0, y=0, width=1, height=1), on_event=event => {
+      sources.push(view.page_message_source())
+      if event == PageMessage("outer") {
+        dispatch_native_event(handle, 3, b"inner", b"https://b.example/", 0)
+        sources.push(view.page_message_source())
+      }
+    }),
+  )
+  defer unregister_view(handle)
+  assert_eq(view.page_message_source(), None)
+  dispatch_native_event(handle, 3, b"outer", b"https://a.example/", 0)
+  assert_eq(sources, [
+    Some("https://a.example/"),
+    Some("https://b.example/"),
+    Some("https://a.example/"),
+  ])
+  assert_eq(view.page_message_source(), None)
+  dispatch_native_event(handle, 3, b"unknown", b"", 0)
+  dispatch_native_event(handle, 3, b"failed", b"decode error", -1)
+  assert_eq(sources[3], None)
+  assert_eq(sources[4], None)
+}
+
+///|
 test "native event decoding preserves WebView2 payloads" {
   let event = decode_native_event(
     9,

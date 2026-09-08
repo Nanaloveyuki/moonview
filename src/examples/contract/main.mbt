@@ -6,17 +6,22 @@ pub struct Contract {
   mut passed : Bool
   mut ready : Bool
   mut file_dialog_smoke : Bool
+  require_message_source : Bool
   finish : (Bool) -> Unit
 }
 
 ///|
-pub fn Contract::new(finish : (Bool) -> Unit) -> Contract {
+pub fn Contract::new(
+  finish : (Bool) -> Unit,
+  require_message_source? : Bool = false,
+) -> Contract {
   {
     view: None,
     completed: false,
     passed: false,
     ready: false,
     file_dialog_smoke: false,
+    require_message_source,
     finish,
   }
 }
@@ -74,6 +79,14 @@ fn Contract::handle_event(
   self : Contract,
   event : @moonview.WebViewEvent,
 ) -> Unit {
+  if event is @moonview.WebViewEvent::PageMessage(_) &&
+    self.require_message_source {
+    if self.view.bind(view => view.page_message_source()) !=
+      Some("moonview://app/index.html") {
+      self.complete(false)
+      return
+    }
+  }
   match event {
     @moonview.WebViewEvent::Ready => self.ready = true
     @moonview.WebViewEvent::ProtocolRequest(request) =>

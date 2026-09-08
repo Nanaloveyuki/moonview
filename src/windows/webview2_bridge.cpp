@@ -557,9 +557,11 @@ bool install_handlers(const std::shared_ptr<View> &view) {
             if (message != nullptr) {
               CoTaskMemFree(message);
             }
-            emit_event(locked, kMessage, text,
-                       SUCCEEDED(result) ? "" : hresult_text("Web message decode", result),
-                       static_cast<int32_t>(result));
+            LPWSTR source = nullptr;
+            const HRESULT source_result = args->get_Source(&source);
+            const std::string source_url = SUCCEEDED(source_result) ? wide_to_utf8(source) : "";
+            if (source != nullptr) CoTaskMemFree(source);
+            emit_event(locked, kMessage, text, source_url, static_cast<int32_t>(result));
             return S_OK;
           })
           .Get(),

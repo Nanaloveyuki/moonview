@@ -12,6 +12,21 @@ pub fn available() -> Bool {
 }
 
 ///|
+/// Returns the native source URL during a main-frame `PageMessage` callback.
+/// Returns `None` outside the callback, on the wrong thread, or when the backend
+/// cannot attest the source (currently WebKitGTK and ArkWeb). Never substitute
+/// `navigation_state().url` for missing message provenance.
+pub fn WebView::page_message_source(self : WebView) -> String? {
+  if !self.on_owner_thread() {
+    return None
+  }
+  match registrations.get(self.handle) {
+    Some(registration) => registration.page_message_source.val
+    None => None
+  }
+}
+
+///|
 /// Registers an application-owned custom URL scheme for the process.
 ///
 /// Call this before the first successful `WebView::create`. Native handlers
