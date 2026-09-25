@@ -8,6 +8,16 @@ pub(all) struct AndroidBounds {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidBounds with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidBounds with Debug::{to_repr}
+
+///|
 /// The exclusive initial document for an Android WebView.
 pub(all) enum AndroidInitialContent {
   Empty
@@ -16,11 +26,31 @@ pub(all) enum AndroidInitialContent {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidInitialContent with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidInitialContent with Debug::{to_repr}
+
+///|
 /// A single HTTP-style header used for Android asset responses.
 pub(all) struct AndroidHeader {
   name : String
   value : String
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidHeader with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidHeader with Debug::{to_repr}
 
 ///|
 /// A page message accepted only from the WebView's configured trusted origin.
@@ -31,11 +61,31 @@ pub(all) struct AndroidPageMessage {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidPageMessage with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidPageMessage with Debug::{to_repr}
+
+///|
 /// A pending request for a resource under the configured Android asset origin.
 pub(all) struct AndroidAssetRequest {
   id : String
   path : String
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidAssetRequest with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidAssetRequest with Debug::{to_repr}
 
 ///|
 /// A response for an `AndroidAssetRequest`.
@@ -46,6 +96,16 @@ pub(all) struct AndroidAssetResponse {
   headers : Array[AndroidHeader]
   body : Bytes
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidAssetResponse with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidAssetResponse with Debug::{to_repr}
 
 ///|
 /// Per-WebView limits enforced by the Android Kotlin host.
@@ -60,6 +120,16 @@ pub(all) struct AndroidResourceLimits {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidResourceLimits with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidResourceLimits with Debug::{to_repr}
+
+///|
 /// The observable lifecycle of an asynchronously-created Android WebView.
 pub(all) enum AndroidWebViewLifecycle {
   Creating
@@ -67,6 +137,16 @@ pub(all) enum AndroidWebViewLifecycle {
   Failed(String)
   Destroyed
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebViewLifecycle with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebViewLifecycle with Debug::{to_repr}
 
 ///|
 /// Events available through the optional Android WebView adapter.
@@ -83,6 +163,16 @@ pub(all) enum AndroidWebViewEvent {
   OperationFailed(String, String)
   Destroyed
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebViewEvent with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebViewEvent with Debug::{to_repr}
 
 ///|
 /// Options for a WebView owned by ajni's attached Android host.

@@ -19,7 +19,7 @@ fn file_dialog_kind_code(kind : FileDialogKind) -> Int {
 
 ///|
 fn invalid_file_dialog_options(message : String) -> Result[Bytes, WebViewError] {
-  Err(WebViewError::NativeFailure(0, message))
+  Err(NativeFailure(0, message))
 }
 
 ///|
@@ -107,11 +107,11 @@ pub fn WebView::show_file_dialog(
   options : FileDialogOptions,
 ) -> Result[FileDialogResult, WebViewError] {
   if !self.on_owner_thread() {
-    return Err(WebViewError::WrongThread)
+    return Err(WrongThread)
   }
   match self.lifecycle() {
-    WebViewLifecycle::Destroyed => return Err(WebViewError::Destroyed)
-    WebViewLifecycle::Failed(error) => return Err(error)
+    Destroyed => return Err(Destroyed)
+    Failed(error) => return Err(error)
     _ => ()
   }
   let filters = match encode_file_dialog_filters(options.filters) {
@@ -131,22 +131,18 @@ pub fn WebView::show_file_dialog(
   match status.val {
     FILE_DIALOG_SELECTED =>
       match decode_file_dialog_selection(response) {
-        Some(paths) => Ok(FileDialogResult::Selected(paths))
+        Some(paths) => Ok(Selected(paths))
         None =>
           Err(
-            WebViewError::NativeFailure(
+            NativeFailure(
               0, "file dialog backend returned an invalid selection",
             ),
           )
       }
-    FILE_DIALOG_CANCELLED => Ok(FileDialogResult::Cancelled)
+    FILE_DIALOG_CANCELLED => Ok(Cancelled)
     FILE_DIALOG_UNSUPPORTED =>
-      Err(
-        WebViewError::Unsupported(
-          "native file dialogs are unavailable on this backend",
-        ),
-      )
-    code => Err(WebViewError::NativeFailure(code, "native file dialog failed"))
+      Err(Unsupported("native file dialogs are unavailable on this backend"))
+    code => Err(NativeFailure(code, "native file dialog failed"))
   }
 }
 
@@ -172,7 +168,7 @@ test "file dialog filters reject ambiguous native delimiters" {
     encode_file_dialog_filters([
       FileDialogFilter::new(name="Bad\tName", extensions=["txt"]),
     ]) {
-    Err(WebViewError::NativeFailure(_, _)) => ()
+    Err(NativeFailure(_, _)) => ()
     _ => fail("expected invalid filter rejection")
   }
 }

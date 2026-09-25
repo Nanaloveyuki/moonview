@@ -55,7 +55,7 @@ pub fn Contract::start(
         ),
         user_agent="moonview-smoke/0.1",
         on_event=event => self.handle_event(event),
-        on_navigation=_url => @moonview.NavigationDecision::Allow,
+        on_navigation=_url => Allow,
       )
       match
         @moonview.WebView::create_in_context(context, parent_handle, options) {
@@ -79,8 +79,7 @@ fn Contract::handle_event(
   self : Contract,
   event : @moonview.WebViewEvent,
 ) -> Unit {
-  if event is @moonview.WebViewEvent::PageMessage(_) &&
-    self.require_message_source {
+  if event is PageMessage(_) && self.require_message_source {
     if self.view.bind(view => view.page_message_source()) !=
       Some("moonview://app/index.html") {
       self.complete(false)
@@ -88,17 +87,16 @@ fn Contract::handle_event(
     }
   }
   match event {
-    @moonview.WebViewEvent::Ready => self.ready = true
-    @moonview.WebViewEvent::ProtocolRequest(request) =>
-      self.respond_protocol(request)
-    @moonview.WebViewEvent::PageMessage("page-ready") =>
+    Ready => self.ready = true
+    ProtocolRequest(request) => self.respond_protocol(request)
+    PageMessage("page-ready") =>
       if self.file_dialog_smoke {
         self.show_file_dialog_smoke()
       } else {
         self.post_ping()
       }
-    @moonview.WebViewEvent::PageMessage("page-ack") => self.evaluate()
-    @moonview.WebViewEvent::ScriptResult(request_id, value) =>
+    PageMessage("page-ack") => self.evaluate()
+    ScriptResult(request_id, value) =>
       if request_id == "contract-eval" &&
         value == "[true,\"moonview-smoke/0.1\",42]" &&
         self.ready {
@@ -106,9 +104,9 @@ fn Contract::handle_event(
       } else {
         self.complete(false)
       }
-    @moonview.WebViewEvent::CreationFailed(_) => self.complete(false)
-    @moonview.WebViewEvent::ScriptFailed(_, _) => self.complete(false)
-    @moonview.WebViewEvent::NavigationFailed(_, _) => self.complete(false)
+    CreationFailed(_) => self.complete(false)
+    ScriptFailed(_, _) => self.complete(false)
+    NavigationFailed(_, _) => self.complete(false)
     _ => ()
   }
 }
@@ -120,7 +118,7 @@ fn Contract::show_file_dialog_smoke(self : Contract) -> Unit {
       match
         view.show_file_dialog(
           @moonview.FileDialogOptions::new(
-            kind=@moonview.FileDialogKind::OpenFile,
+            kind=OpenFile,
             title=Some("MoonView file dialog smoke"),
             filters=[
               @moonview.FileDialogFilter::new(name="MoonBit source", extensions=[
@@ -129,9 +127,8 @@ fn Contract::show_file_dialog_smoke(self : Contract) -> Unit {
             ],
           ),
         ) {
-        Ok(@moonview.FileDialogResult::Cancelled) => self.post_ping()
-        Ok(@moonview.FileDialogResult::Selected(paths)) if !paths.is_empty() =>
-          self.post_ping()
+        Ok(Cancelled) => self.post_ping()
+        Ok(Selected(paths)) if !paths.is_empty() => self.post_ping()
         _ => self.complete(false)
       }
     None => self.complete(false)

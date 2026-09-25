@@ -2,6 +2,13 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.11
+
+- Pin the project to MoonBit 0.1.20260920 (`moonc` 0.10.14).
+- Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.2.4`.
+- Keep derived `Eq` and `Debug` methods explicit so newer toolchains do not
+  promote them implicitly, and drop redundant constructor annotations.
+
 ## 0.1.0-beta.10
 
 - Add callback-local `WebView::page_message_source()` provenance without changing

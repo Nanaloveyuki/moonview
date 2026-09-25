@@ -6,12 +6,32 @@ pub(all) enum WebContextStorage {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebContextStorage with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebContextStorage with Debug::{to_repr}
+
+///|
 /// A browser-data context that can be shared by multiple WebViews.
 pub(all) struct WebContext {
   priv id : UInt64
   priv storage : WebContextStorage
   priv data_directory : String
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebContext with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebContext with Debug::{to_repr}
 
 ///|
 let next_context_id : Ref[UInt64] = Ref(1UL)

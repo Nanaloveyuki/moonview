@@ -11,6 +11,6 @@ test "ephemeral contexts remain isolated" {
   let first = WebContext::ephemeral()
   let second = WebContext::ephemeral()
   assert_false(first == second)
-  assert_eq(first.storage, WebContextStorage::Ephemeral)
+  assert_eq(first.storage, Ephemeral)
   assert_eq(first.data_directory, "")
 }

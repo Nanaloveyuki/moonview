@@ -8,6 +8,16 @@ pub(all) struct Rect {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend Rect with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend Rect with Debug::{to_repr}
+
+///|
 /// State reported by an asynchronously-created native WebView.
 pub(all) enum WebViewLifecycle {
   Creating
@@ -15,6 +25,16 @@ pub(all) enum WebViewLifecycle {
   Failed(WebViewError)
   Destroyed
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewLifecycle with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewLifecycle with Debug::{to_repr}
 
 ///|
 /// Failures reported before or during native WebView creation, after disposal,
@@ -31,11 +51,31 @@ pub(all) enum WebViewError {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewError with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewError with Debug::{to_repr}
+
+///|
 /// The decision synchronously returned to a native navigation callback.
 pub(all) enum NavigationDecision {
   Allow
   Deny
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NavigationDecision with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NavigationDecision with Debug::{to_repr}
 
 ///|
 /// The decision synchronously returned when page content requests a new
@@ -48,6 +88,16 @@ pub(all) enum NewWindowDecision {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NewWindowDecision with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NewWindowDecision with Debug::{to_repr}
+
+///|
 /// The native dialog operation to present for a WebView.
 pub(all) enum FileDialogKind {
   OpenFile
@@ -57,12 +107,32 @@ pub(all) enum FileDialogKind {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogKind with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogKind with Debug::{to_repr}
+
+///|
 /// A user-facing name and the extensions accepted by a file dialog.
 /// Extensions do not include a leading dot or wildcard.
 pub(all) struct FileDialogFilter {
   name : String
   extensions : Array[String]
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogFilter with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogFilter with Debug::{to_repr}
 
 ///|
 /// Options for a native file dialog owned by a WebView's native container.
@@ -75,11 +145,31 @@ pub(all) struct FileDialogOptions {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogOptions with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogOptions with Debug::{to_repr}
+
+///|
 /// The outcome of a native file dialog. `Cancelled` is a normal user action.
 pub(all) enum FileDialogResult {
   Cancelled
   Selected(Array[String])
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogResult with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend FileDialogResult with Debug::{to_repr}
 
 ///|
 /// The most recently observed document URL and history availability.
@@ -90,11 +180,31 @@ pub(all) struct NavigationState {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NavigationState with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend NavigationState with Debug::{to_repr}
+
+///|
 /// A single HTTP header in a custom-scheme request or response.
 pub(all) struct HttpHeader {
   name : String
   value : String
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend HttpHeader with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend HttpHeader with Debug::{to_repr}
 
 ///|
 /// A pending custom-scheme request. `body` is unmodified binary request data.
@@ -108,12 +218,32 @@ pub(all) struct ProtocolRequest {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend ProtocolRequest with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend ProtocolRequest with Debug::{to_repr}
+
+///|
 /// A response to a pending custom-scheme request.
 pub(all) struct ProtocolResponse {
   status : Int
   headers : Array[HttpHeader]
   body : Bytes
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend ProtocolResponse with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend ProtocolResponse with Debug::{to_repr}
 
 ///|
 /// Per-WebView resource limits for desktop native backends. The pending-command
@@ -129,6 +259,16 @@ pub(all) struct WebViewResourceLimits {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewResourceLimits with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewResourceLimits with Debug::{to_repr}
+
+///|
 /// A media capture category requested by page content.
 pub(all) enum MediaPermissionKind {
   Camera
@@ -138,6 +278,16 @@ pub(all) enum MediaPermissionKind {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionKind with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionKind with Debug::{to_repr}
+
+///|
 /// A synchronous request to access local media devices from an origin.
 pub(all) struct MediaPermissionRequest {
   kind : MediaPermissionKind
@@ -145,11 +295,31 @@ pub(all) struct MediaPermissionRequest {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionRequest with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionRequest with Debug::{to_repr}
+
+///|
 /// The decision synchronously returned to a native media-permission callback.
 pub(all) enum MediaPermissionDecision {
   Allow
   Deny
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionDecision with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend MediaPermissionDecision with Debug::{to_repr}
 
 ///|
 /// Events emitted on the native UI thread that owns the parent container.
@@ -177,6 +347,16 @@ pub(all) enum WebViewEvent {
   ProtocolRequest(ProtocolRequest)
   ProtocolCancelled(String)
 } derive(Eq, Debug)
+
+///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewEvent with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend WebViewEvent with Debug::{to_repr}
 
 ///|
 /// Configuration passed while the native WebView is being created.
@@ -313,17 +493,17 @@ fn ignore_event(_event : WebViewEvent) -> Unit {
 
 ///|
 fn allow_navigation(_url : String) -> NavigationDecision {
-  NavigationDecision::Allow
+  Allow
 }
 
 ///|
 fn deny_new_window(_url : String) -> NewWindowDecision {
-  NewWindowDecision::Deny
+  Deny
 }
 
 ///|
 fn deny_media_permission(
   _request : MediaPermissionRequest,
 ) -> MediaPermissionDecision {
-  MediaPermissionDecision::Deny
+  Deny
 }

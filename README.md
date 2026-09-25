@@ -14,7 +14,7 @@ Do not substitute the current or pending navigation URL when authorizing IPC.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.10
+moon add Nanaloveyuki/moonview@0.1.0-beta.11
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as

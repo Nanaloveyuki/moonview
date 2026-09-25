@@ -34,17 +34,13 @@ pub fn WebView::page_message_source(self : WebView) -> String? {
 /// the backend and reported as `ProtocolCancelled`.
 pub fn register_custom_scheme(name : String) -> Result[Unit, WebViewError] {
   if custom_schemes_locked.contains(0) {
-    Err(WebViewError::ConfigurationLocked)
+    Err(ConfigurationLocked)
   } else if name.length() == 0 {
-    Err(WebViewError::NativeFailure(0, "Custom scheme name must not be empty"))
+    Err(NativeFailure(0, "Custom scheme name must not be empty"))
   } else if native_register_custom_scheme(encode_utf8(name)) != 0 {
     Ok(())
   } else {
-    Err(
-      WebViewError::Unsupported(
-        "Custom schemes are unavailable on this backend",
-      ),
-    )
+    Err(Unsupported("Custom schemes are unavailable on this backend"))
   }
 }
 
@@ -75,12 +71,12 @@ pub fn WebView::create_in_context(
 ) -> Result[WebView, WebViewError] {
   if native_is_ohos() {
     Err(
-      WebViewError::Unsupported(
+      Unsupported(
         "OpenHarmony Web components must be created by ArkUI and attached with WebView::attach_ohos",
       ),
     )
   } else if !available() {
-    Err(WebViewError::Unavailable)
+    Err(Unavailable)
   } else {
     match create_options_error(options) {
       Some(error) => Err(error)
@@ -90,12 +86,12 @@ pub fn WebView::create_in_context(
           None => {
             let owner_thread = native_thread_token()
             if owner_thread == 0UL {
-              return Err(WebViewError::CreateRejected)
+              return Err(CreateRejected)
             }
             ensure_native_callbacks()
             let handle = native_create(
               context.id,
-              context.storage == WebContextStorage::Ephemeral,
+              context.storage == Ephemeral,
               encode_utf8(context.data_directory),
               parent_handle,
               options.bounds.x,
@@ -111,7 +107,7 @@ pub fn WebView::create_in_context(
               options.resource_limits.max_protocol_request_body_bytes,
             )
             if handle == 0 {
-              Err(WebViewError::CreateRejected)
+              Err(CreateRejected)
             } else {
               if should_lock_custom_schemes(handle) {
                 native_lock_custom_schemes()
@@ -124,9 +120,7 @@ pub fn WebView::create_in_context(
                   ignore(native_destroy(handle))
                   unregister_view(handle)
                   Err(
-                    WebViewError::NativeFailure(
-                      0, "WebView initial visibility setup failed",
-                    ),
+                    NativeFailure(0, "WebView initial visibility setup failed"),
                   )
                 } else {
                   native_start(handle)
@@ -156,17 +150,11 @@ test "custom scheme configuration waits for a successful create" {
 
 ///|
 fn context_error(context : WebContext) -> WebViewError? {
-  if active_backend() == NativeBackend::Windows &&
-    context.storage == WebContextStorage::Ephemeral {
+  if active_backend() == Windows && context.storage == Ephemeral {
+    Some(Unsupported("Ephemeral WebContext is unavailable on WebView2"))
+  } else if active_backend() == MacOS && context.data_directory.length() > 0 {
     Some(
-      WebViewError::Unsupported(
-        "Ephemeral WebContext is unavailable on WebView2",
-      ),
-    )
-  } else if active_backend() == NativeBackend::MacOS &&
-    context.data_directory.length() > 0 {
-    Some(
-      WebViewError::Unsupported(
+      Unsupported(
         "Custom WebContext data directories are unavailable on WKWebView",
       ),
     )
@@ -178,11 +166,7 @@ fn context_error(context : WebContext) -> WebViewError? {
 ///|
 fn bounds_error(bounds : Rect) -> WebViewError? {
   if bounds.width < 1 || bounds.height < 1 {
-    Some(
-      WebViewError::NativeFailure(
-        0, "WebView bounds must have positive width and height",
-      ),
-    )
+    Some(NativeFailure(0, "WebView bounds must have positive width and height"))
   } else {
     None
   }
@@ -201,11 +185,7 @@ fn resource_limits_error(limits : WebViewResourceLimits) -> WebViewError? {
   if limits.max_pending_commands < 0 ||
     limits.max_pending_command_bytes < 0 ||
     limits.max_protocol_request_body_bytes < 0 {
-    Some(
-      WebViewError::NativeFailure(
-        0, "WebView resource limits must be non-negative",
-      ),
-    )
+    Some(NativeFailure(0, "WebView resource limits must be non-negative"))
   } else {
     None
   }
@@ -223,24 +203,20 @@ pub fn WebView::attach_ohos(
   options : OhosAttachOptions,
 ) -> Result[WebView, WebViewError] {
   if web_tag.length() == 0 {
-    Err(WebViewError::NativeFailure(0, "OpenHarmony Web tag must not be empty"))
+    Err(NativeFailure(0, "OpenHarmony Web tag must not be empty"))
   } else if !native_is_ohos() {
-    Err(
-      WebViewError::Unsupported(
-        "OpenHarmony ArkWeb is unavailable on this backend",
-      ),
-    )
+    Err(Unsupported("OpenHarmony ArkWeb is unavailable on this backend"))
   } else if !available() {
-    Err(WebViewError::Unavailable)
+    Err(Unavailable)
   } else {
     ensure_native_callbacks()
     let handle = native_attach_ohos(encode_utf8(web_tag))
     if handle == 0 {
-      Err(WebViewError::CreateRejected)
+      Err(CreateRejected)
     } else {
       register_ohos_view(handle, options)
       native_start_ohos(handle)
-      Ok(WebView::{ handle, owner_thread: 0UL, })
+      Ok({ handle, owner_thread: 0UL, })
     }
   }
 }
@@ -248,7 +224,7 @@ pub fn WebView::attach_ohos(
 ///|
 pub fn WebView::lifecycle(self : WebView) -> WebViewLifecycle {
   if native_is_ohos() && !native_ohos_attached(self.handle) {
-    WebViewLifecycle::Destroyed
+    Destroyed
   } else {
     lifecycle_of(self.handle)
   }
@@ -353,11 +329,7 @@ pub fn WebView::set_zoom_factor(
   factor : Double,
 ) -> Result[Unit, WebViewError] {
   if factor <= 0.0 {
-    Err(
-      WebViewError::NativeFailure(
-        0, "WebView zoom factor must be greater than zero",
-      ),
-    )
+    Err(NativeFailure(0, "WebView zoom factor must be greater than zero"))
   } else {
     self.with_handle("set zoom", handle => native_set_zoom(handle, factor))
   }
@@ -370,17 +342,17 @@ pub fn WebView::set_zoom_factor(
 /// a supported public API for programmatically opening WKWebView inspector.
 pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   } else {
     match self.lifecycle() {
-      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-      WebViewLifecycle::Failed(error) => Err(error)
+      Destroyed => Err(Destroyed)
+      Failed(error) => Err(error)
       _ =>
         if native_open_devtools(self.handle) != 0 {
           Ok(())
         } else {
           Err(
-            WebViewError::Unsupported(
+            Unsupported(
               "WebView developer tools are unavailable on this backend",
             ),
           )
@@ -396,19 +368,17 @@ pub fn WebView::open_devtools(self : WebView) -> Result[Unit, WebViewError] {
 /// releases before 11 return `Unsupported`.
 pub fn WebView::open_print_dialog(self : WebView) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   } else {
     match self.lifecycle() {
-      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-      WebViewLifecycle::Failed(error) => Err(error)
+      Destroyed => Err(Destroyed)
+      Failed(error) => Err(error)
       _ =>
         if native_open_print_dialog(self.handle) != 0 {
           Ok(())
         } else {
           Err(
-            WebViewError::Unsupported(
-              "WebView print dialog is unavailable on this backend",
-            ),
+            Unsupported("WebView print dialog is unavailable on this backend"),
           )
         }
     }
@@ -447,16 +417,16 @@ pub fn WebView::respond_protocol(
 ) -> Result[Unit, WebViewError] {
   if native_is_ohos() {
     Err(
-      WebViewError::Unsupported(
+      Unsupported(
         "OpenHarmony custom-scheme responses require a future IO-thread adapter",
       ),
     )
   } else if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   } else {
     match self.lifecycle() {
-      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-      WebViewLifecycle::Failed(error) => Err(error)
+      Destroyed => Err(Destroyed)
+      Failed(error) => Err(error)
       _ =>
         if native_respond_protocol(
             self.handle,
@@ -468,11 +438,7 @@ pub fn WebView::respond_protocol(
           0 {
           Ok(())
         } else {
-          Err(
-            WebViewError::NativeFailure(
-              0, "Protocol request is no longer pending",
-            ),
-          )
+          Err(NativeFailure(0, "Protocol request is no longer pending"))
         }
     }
   }
@@ -482,19 +448,15 @@ pub fn WebView::respond_protocol(
 /// Destroys the native child view. Repeated calls are harmless.
 pub fn WebView::destroy(self : WebView) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
-  } else if self.lifecycle() == WebViewLifecycle::Destroyed {
+    Err(WrongThread)
+  } else if self.lifecycle() == Destroyed {
     unregister_view(self.handle)
     Ok(())
   } else if native_destroy(self.handle) != 0 {
     unregister_view(self.handle)
     Ok(())
   } else {
-    Err(
-      WebViewError::NativeFailure(
-        0, "WebView destroy must run on its creation UI thread",
-      ),
-    )
+    Err(NativeFailure(0, "WebView destroy must run on its creation UI thread"))
   }
 }
 
@@ -515,7 +477,7 @@ fn owner_thread_result(on_owner_thread : Bool) -> Result[Unit, WebViewError] {
   if on_owner_thread {
     Ok(())
   } else {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   }
 }
 
@@ -526,14 +488,14 @@ fn WebView::with_handle(
   operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   } else {
     match self.lifecycle() {
-      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-      WebViewLifecycle::Failed(error) => Err(error)
+      Destroyed => Err(Destroyed)
+      Failed(error) => Err(error)
       _ if native_is_ohos() =>
         Err(
-          WebViewError::Unsupported(
+          Unsupported(
             "This operation is controlled by the ArkUI host or is not exposed by ArkWeb API level 12",
           ),
         )
@@ -549,11 +511,11 @@ fn WebView::with_ohos_supported_handle(
   operation : (UInt64) -> Int,
 ) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
-    Err(WebViewError::WrongThread)
+    Err(WrongThread)
   } else {
     match self.lifecycle() {
-      WebViewLifecycle::Destroyed => Err(WebViewError::Destroyed)
-      WebViewLifecycle::Failed(error) => Err(error)
+      Destroyed => Err(Destroyed)
+      Failed(error) => Err(error)
       _ => command_result(operation_name, operation(self.handle))
     }
   }
@@ -567,11 +529,6 @@ fn command_result(
   if accepted != 0 {
     Ok(())
   } else {
-    Err(
-      WebViewError::NativeFailure(
-        0,
-        "WebView backend rejected " + operation_name,
-      ),
-    )
+    Err(NativeFailure(0, "WebView backend rejected " + operation_name))
   }
 }

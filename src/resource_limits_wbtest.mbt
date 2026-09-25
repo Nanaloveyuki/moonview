@@ -24,7 +24,7 @@ test "negative resource limits are rejected" {
     WebViewResourceLimits::new(max_pending_commands=-1),
   )
   match error {
-    Some(WebViewError::NativeFailure(_, _)) => ()
+    Some(NativeFailure(_, _)) => ()
     _ => fail("expected a native failure")
   }
 }
@@ -35,11 +35,7 @@ test "invalid WebView bounds are rejected before native creation" {
   let zero_height = bounds_error(Rect::new(x=0, y=0, width=1, height=0))
   let valid = bounds_error(Rect::new(x=-10, y=-20, width=1, height=1))
   match (zero_width, zero_height, valid) {
-    (
-      Some(WebViewError::NativeFailure(_, _)),
-      Some(WebViewError::NativeFailure(_, _)),
-      None,
-    ) => ()
+    (Some(NativeFailure(_, _)), Some(NativeFailure(_, _)), None) => ()
     _ => fail("expected only positive dimensions to be accepted")
   }
 }

@@ -34,7 +34,7 @@ fn ensure_native_callbacks() -> Unit {
 ///|
 fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
   registrations.set(handle, {
-    lifecycle: WebViewLifecycle::Creating,
+    lifecycle: Creating,
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
     page_message_source: Ref(None),
@@ -47,7 +47,7 @@ fn register_view(handle : UInt64, options : WebViewOptions) -> Unit {
 ///|
 fn register_ohos_view(handle : UInt64, options : OhosAttachOptions) -> Unit {
   registrations.set(handle, {
-    lifecycle: WebViewLifecycle::Creating,
+    lifecycle: Creating,
     navigation_state: NavigationState::new(),
     on_event: options.on_event,
     page_message_source: Ref(None),
@@ -66,7 +66,7 @@ fn unregister_view(handle : UInt64) -> Unit {
 fn lifecycle_of(handle : UInt64) -> WebViewLifecycle {
   match registrations.get(handle) {
     Some(registration) => registration.lifecycle
-    None => WebViewLifecycle::Destroyed
+    None => Destroyed
   }
 }
 
@@ -118,11 +118,9 @@ fn dispatch_native_event(
       }
       let event = decode_native_event(kind, value, detail, code)
       match event {
-        WebViewEvent::Ready => update_lifecycle(handle, WebViewLifecycle::Ready)
-        WebViewEvent::CreationFailed(error) =>
-          update_lifecycle(handle, WebViewLifecycle::Failed(error))
-        WebViewEvent::ProcessFailed(error) =>
-          update_lifecycle(handle, WebViewLifecycle::Failed(error))
+        Ready => update_lifecycle(handle, Ready)
+        CreationFailed(error) => update_lifecycle(handle, Failed(error))
+        ProcessFailed(error) => update_lifecycle(handle, Failed(error))
         _ => ()
       }
       update_navigation_state(handle, event)
@@ -137,13 +135,13 @@ fn update_navigation_state(handle : UInt64, event : WebViewEvent) -> Unit {
   match registrations.get(handle) {
     Some(registration) => {
       let navigation_state = match event {
-        WebViewEvent::SourceChanged(url) =>
+        SourceChanged(url) =>
           {
             url,
             can_go_back: registration.navigation_state.can_go_back,
             can_go_forward: registration.navigation_state.can_go_forward,
           }
-        WebViewEvent::HistoryChanged(can_go_back, can_go_forward) =>
+        HistoryChanged(can_go_back, can_go_forward) =>
           {
             url: registration.navigation_state.url,
             can_go_back,
@@ -170,8 +168,8 @@ fn decide_navigation(handle : UInt64, url : Bytes) -> Int {
   match registrations.get(handle) {
     Some(registration) =>
       match (registration.on_navigation)(decode_utf8(url)) {
-        NavigationDecision::Allow => 1
-        NavigationDecision::Deny => 0
+        Allow => 1
+        Deny => 0
       }
     None => 0
   }
@@ -182,8 +180,8 @@ fn decide_new_window(handle : UInt64, url : Bytes) -> Int {
   match registrations.get(handle) {
     Some(registration) =>
       match (registration.on_new_window)(decode_utf8(url)) {
-        NewWindowDecision::Deny => 0
-        NewWindowDecision::NavigateCurrent => 1
+        Deny => 0
+        NavigateCurrent => 1
       }
     None => 0
   }
@@ -202,7 +200,7 @@ fn dispatch_protocol_request(
   match registrations.get(handle) {
     Some(registration) =>
       (registration.on_event)(
-        WebViewEvent::ProtocolRequest({
+        ProtocolRequest({
           id: decode_utf8(request_id),
           scheme: decode_utf8(scheme),
           http_method: decode_utf8(http_method),
@@ -218,7 +216,7 @@ fn dispatch_protocol_request(
 ///|
 fn decide_media_permission(handle : UInt64, kind : Int, origin : Bytes) -> Int {
   match media_permission_kind_from_native(kind) {
-    MediaPermissionKind::Unknown(_) => 0
+    Unknown(_) => 0
     kind =>
       match registrations.get(handle) {
         Some(registration) =>
@@ -227,8 +225,8 @@ fn decide_media_permission(handle : UInt64, kind : Int, origin : Bytes) -> Int {
               kind,
               origin: decode_utf8(origin),
             }) {
-            MediaPermissionDecision::Allow => 1
-            MediaPermissionDecision::Deny => 0
+            Allow => 1
+            Deny => 0
           }
         None => 0
       }
@@ -245,38 +243,32 @@ fn decode_native_event(
   let value = decode_utf8(value)
   let detail = decode_utf8(detail)
   match kind {
-    1 => WebViewEvent::Ready
-    2 => WebViewEvent::CreationFailed(WebViewError::NativeFailure(code, detail))
-    3 => WebViewEvent::PageMessage(value)
-    4 => WebViewEvent::NavigationStarting(value)
-    5 => WebViewEvent::SourceChanged(value)
+    1 => Ready
+    2 => CreationFailed(NativeFailure(code, detail))
+    3 => PageMessage(value)
+    4 => NavigationStarting(value)
+    5 => SourceChanged(value)
     6 =>
       if code == 0 {
-        WebViewEvent::NavigationCompleted(value)
+        NavigationCompleted(value)
       } else {
-        WebViewEvent::NavigationFailed(
-          value,
-          WebViewError::NativeFailure(code, detail),
-        )
+        NavigationFailed(value, NativeFailure(code, detail))
       }
-    7 => WebViewEvent::TitleChanged(value)
+    7 => TitleChanged(value)
     8 =>
-      WebViewEvent::HistoryChanged(
+      HistoryChanged(
         contains_text(detail, "back=1"),
         contains_text(detail, "forward=1"),
       )
     9 =>
       if code == 0 {
-        WebViewEvent::ScriptResult(detail, value)
+        ScriptResult(detail, value)
       } else {
-        WebViewEvent::ScriptFailed(
-          detail,
-          WebViewError::NativeFailure(code, value),
-        )
+        ScriptFailed(detail, NativeFailure(code, value))
       }
-    10 => WebViewEvent::ProtocolCancelled(value)
-    11 => WebViewEvent::ProcessFailed(WebViewError::NativeFailure(code, detail))
-    _ => WebViewEvent::CreationFailed(WebViewError::NativeFailure(code, detail))
+    10 => ProtocolCancelled(value)
+    11 => ProcessFailed(NativeFailure(code, detail))
+    _ => CreationFailed(NativeFailure(code, detail))
   }
 }
 
@@ -381,10 +373,10 @@ fn read_u32be(bytes : Bytes, offset : Int) -> Int? {
 ///|
 fn media_permission_kind_from_native(kind : Int) -> MediaPermissionKind {
   match kind {
-    1 => MediaPermissionKind::Camera
-    2 => MediaPermissionKind::Microphone
-    3 => MediaPermissionKind::CameraAndMicrophone
-    _ => MediaPermissionKind::Unknown(kind)
+    1 => Camera
+    2 => Microphone
+    3 => CameraAndMicrophone
+    _ => Unknown(kind)
   }
 }
 

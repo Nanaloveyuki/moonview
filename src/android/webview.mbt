@@ -6,6 +6,16 @@ pub struct AndroidWebView {
 } derive(Eq, Debug)
 
 ///|
+#deprecated("Use `==` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebView with Eq::{equal, not_equal}
+
+///|
+#deprecated("Use `Debug::to_repr` instead", skip_current_package=true)
+#doc(hidden)
+pub extend AndroidWebView with Debug::{to_repr}
+
+///|
 priv struct Registration {
   lifecycle : AndroidWebViewLifecycle
   trusted_origin : String
