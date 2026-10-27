@@ -2,12 +2,13 @@
 
 All notable changes to `moonview` are documented in this file.
 
-## Unreleased
+## 0.1.0-beta.12
 
 - Pin the compiler archive to `0.10.17+d971670cd` and CLI to `0.1.20261023`,
   including exact-version installation in Linux, macOS, and Windows CI.
 - Replace the deprecated array-prefix check in Android asset routing with a
   string-prefix check, preserving routing behavior without temporary arrays.
+- Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.3.2`.
 
 ## 0.1.0-beta.11
 
