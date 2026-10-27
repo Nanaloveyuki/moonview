@@ -5,3 +5,4 @@ ref/
 _build/
 .mooncakes/
 .tools/
+.repos/
