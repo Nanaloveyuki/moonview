@@ -1,11 +1,11 @@
 ///|
-extern "C" fn create_host(width : Int, height : Int) -> UInt64 = "moonview_linux_smoke_create_host"
+extern "C" fn create_host(width : Int32, height : Int32) -> UInt64 = "moonview_linux_smoke_create_host"
 
 ///|
-extern "C" fn run_loop() -> Int = "moonview_linux_smoke_run_loop"
+extern "C" fn run_loop() -> Int32 = "moonview_linux_smoke_run_loop"
 
 ///|
-extern "C" fn finish(success : Int) -> Unit = "moonview_linux_smoke_finish"
+extern "C" fn finish(success : Int32) -> Unit = "moonview_linux_smoke_finish"
 
 ///|
 fn main {

@@ -17,21 +17,21 @@ pub(all) struct AndroidAssetRequest {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AndroidAssetResponse {
-  status : Int
+  status : Int32
   mime_type : String
   encoding : String
   headers : Array[AndroidHeader]
   body : Bytes
 } derive(Eq, @debug.Debug)
-pub fn AndroidAssetResponse::new(status~ : Int, mime_type~ : String, encoding? : String, headers? : Array[AndroidHeader], body? : Bytes) -> Self
+pub fn AndroidAssetResponse::new(status~ : Int32, mime_type~ : String, encoding? : String, headers? : Array[AndroidHeader], body? : Bytes) -> Self
 
 pub(all) struct AndroidBounds {
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
 } derive(Eq, @debug.Debug)
-pub fn AndroidBounds::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Self
+pub fn AndroidBounds::new(x~ : Int32, y~ : Int32, width~ : Int32, height~ : Int32) -> Self
 
 pub(all) struct AndroidHeader {
   name : String
@@ -52,12 +52,12 @@ pub(all) struct AndroidPageMessage {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AndroidResourceLimits {
-  max_page_message_bytes : Int
-  max_pending_asset_requests : Int
-  max_asset_response_bytes : Int
-  asset_response_timeout_millis : Int
+  max_page_message_bytes : Int32
+  max_pending_asset_requests : Int32
+  max_asset_response_bytes : Int32
+  asset_response_timeout_millis : Int32
 } derive(Eq, @debug.Debug)
-pub fn AndroidResourceLimits::new(max_page_message_bytes? : Int, max_pending_asset_requests? : Int, max_asset_response_bytes? : Int, asset_response_timeout_millis? : Int) -> Self
+pub fn AndroidResourceLimits::new(max_page_message_bytes? : Int32, max_pending_asset_requests? : Int32, max_asset_response_bytes? : Int32, asset_response_timeout_millis? : Int32) -> Self
 
 pub struct AndroidWebView {
   // private fields

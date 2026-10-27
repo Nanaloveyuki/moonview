@@ -1,11 +1,11 @@
 ///|
-extern "C" fn create_host_window(width : Int, height : Int) -> UInt64 = "moonview_smoke_create_host_window"
+extern "C" fn create_host_window(width : Int32, height : Int32) -> UInt64 = "moonview_smoke_create_host_window"
 
 ///|
-extern "C" fn run_host_message_loop() -> Int = "moonview_smoke_run_host_message_loop"
+extern "C" fn run_host_message_loop() -> Int32 = "moonview_smoke_run_host_message_loop"
 
 ///|
-extern "C" fn finish(success : Int) -> Unit = "moonview_smoke_finish"
+extern "C" fn finish(success : Int32) -> Unit = "moonview_smoke_finish"
 
 ///|
 extern "C" fn destroy_host_window() -> Unit = "moonview_smoke_destroy_host_window"

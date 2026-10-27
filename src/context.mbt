@@ -42,7 +42,7 @@ let persistent_context_ids : Map[String, UInt64] = Map([])
 ///|
 /// Creates a persistent context. A non-empty `data_directory` is supported on
 /// Windows and Linux; macOS rejects it rather than silently using another path.
-pub fn WebContext::persistent(data_directory? : String = "") -> WebContext {
+pub fn WebContext::persistent(data_directory~ : String = "") -> WebContext {
   if data_directory.length() == 0 {
     { id: 0UL, storage: Persistent, data_directory, }
   } else {

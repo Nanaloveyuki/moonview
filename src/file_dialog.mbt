@@ -8,7 +8,7 @@ const FILE_DIALOG_CANCELLED = 1
 const FILE_DIALOG_UNSUPPORTED = -1
 
 ///|
-fn file_dialog_kind_code(kind : FileDialogKind) -> Int {
+fn file_dialog_kind_code(kind : FileDialogKind) -> Int32 {
   match kind {
     OpenFile => 0
     OpenFiles => 1

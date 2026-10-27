@@ -58,11 +58,11 @@ fn native_ohos_attached(handle : UInt64) -> Bool {
 
 ///|
 fn install_native_callbacks(
-  event_callback : (UInt64, Int, Bytes, Bytes, Int) -> Unit,
-  navigation_callback : (UInt64, Bytes) -> Int,
-  new_window_callback : (UInt64, Bytes) -> Int,
+  event_callback : (UInt64, Int32, Bytes, Bytes, Int32) -> Unit,
+  navigation_callback : (UInt64, Bytes) -> Int32,
+  new_window_callback : (UInt64, Bytes) -> Int32,
   protocol_callback : (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit,
-  media_permission_callback : (UInt64, Int, Bytes) -> Int,
+  media_permission_callback : (UInt64, Int32, Bytes) -> Int32,
 ) -> Unit {
   match active_backend() {
     Windows => {
@@ -206,7 +206,7 @@ fn install_native_callbacks(
 }
 
 ///|
-fn native_register_custom_scheme(name : Bytes) -> Int {
+fn native_register_custom_scheme(name : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.register_custom_scheme(name)
     MacOS => @macos.register_custom_scheme(name)
@@ -231,10 +231,10 @@ fn native_lock_custom_schemes() -> Unit {
 fn native_respond_protocol(
   handle : UInt64,
   request_id : Bytes,
-  status : Int,
+  status : Int32,
   headers : Bytes,
   body : Bytes,
-) -> Int {
+) -> Int32 {
   match active_backend() {
     Windows =>
       @windows.respond_protocol(handle, request_id, status, headers, body)
@@ -251,17 +251,17 @@ fn native_create(
   ephemeral : Bool,
   data_directory : Bytes,
   parent_handle : UInt64,
-  x : Int,
-  y : Int,
-  width : Int,
-  height : Int,
+  x : Int32,
+  y : Int32,
+  width : Int32,
+  height : Int32,
   initial_url : Bytes,
   initial_html : Bytes,
   initialization_script : Bytes,
   user_agent : Bytes,
-  max_pending_commands : Int,
-  max_pending_command_bytes : Int,
-  max_protocol_request_body_bytes : Int,
+  max_pending_commands : Int32,
+  max_pending_command_bytes : Int32,
+  max_protocol_request_body_bytes : Int32,
 ) -> UInt64 {
   match active_backend() {
     Windows =>
@@ -299,7 +299,7 @@ fn native_start(handle : UInt64) -> Unit {
 }
 
 ///|
-fn native_destroy(handle : UInt64) -> Int {
+fn native_destroy(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.destroy(handle)
     MacOS => @macos.destroy(handle)
@@ -312,11 +312,11 @@ fn native_destroy(handle : UInt64) -> Int {
 ///|
 fn native_set_bounds(
   handle : UInt64,
-  x : Int,
-  y : Int,
-  width : Int,
-  height : Int,
-) -> Int {
+  x : Int32,
+  y : Int32,
+  width : Int32,
+  height : Int32,
+) -> Int32 {
   match active_backend() {
     Windows => @windows.set_bounds(handle, x, y, width, height)
     MacOS => @macos.set_bounds(handle, x, y, width, height)
@@ -327,7 +327,7 @@ fn native_set_bounds(
 }
 
 ///|
-fn native_set_visible(handle : UInt64, visible : Bool) -> Int {
+fn native_set_visible(handle : UInt64, visible : Bool) -> Int32 {
   let visible = if visible { 1 } else { 0 }
   match active_backend() {
     Windows => @windows.set_visible(handle, visible)
@@ -339,7 +339,7 @@ fn native_set_visible(handle : UInt64, visible : Bool) -> Int {
 }
 
 ///|
-fn native_focus(handle : UInt64) -> Int {
+fn native_focus(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.focus(handle)
     MacOS => @macos.focus(handle)
@@ -350,7 +350,7 @@ fn native_focus(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_navigate(handle : UInt64, url : Bytes) -> Int {
+fn native_navigate(handle : UInt64, url : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.navigate(handle, url)
     MacOS => @macos.navigate(handle, url)
@@ -361,7 +361,7 @@ fn native_navigate(handle : UInt64, url : Bytes) -> Int {
 }
 
 ///|
-fn native_load_html(handle : UInt64, html : Bytes) -> Int {
+fn native_load_html(handle : UInt64, html : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.load_html(handle, html)
     MacOS => @macos.load_html(handle, html)
@@ -372,7 +372,7 @@ fn native_load_html(handle : UInt64, html : Bytes) -> Int {
 }
 
 ///|
-fn native_reload(handle : UInt64) -> Int {
+fn native_reload(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.reload(handle)
     MacOS => @macos.reload(handle)
@@ -383,7 +383,7 @@ fn native_reload(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_stop(handle : UInt64) -> Int {
+fn native_stop(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.stop(handle)
     MacOS => @macos.stop(handle)
@@ -394,7 +394,7 @@ fn native_stop(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_go_back(handle : UInt64) -> Int {
+fn native_go_back(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.go_back(handle)
     MacOS => @macos.go_back(handle)
@@ -405,7 +405,7 @@ fn native_go_back(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_go_forward(handle : UInt64) -> Int {
+fn native_go_forward(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.go_forward(handle)
     MacOS => @macos.go_forward(handle)
@@ -416,7 +416,7 @@ fn native_go_forward(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_add_init_script(handle : UInt64, script : Bytes) -> Int {
+fn native_add_init_script(handle : UInt64, script : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.add_init_script(handle, script)
     MacOS => @macos.add_init_script(handle, script)
@@ -427,7 +427,7 @@ fn native_add_init_script(handle : UInt64, script : Bytes) -> Int {
 }
 
 ///|
-fn native_set_zoom(handle : UInt64, factor : Double) -> Int {
+fn native_set_zoom(handle : UInt64, factor : Double) -> Int32 {
   match active_backend() {
     Windows => @windows.set_zoom(handle, factor)
     MacOS => @macos.set_zoom(handle, factor)
@@ -438,7 +438,7 @@ fn native_set_zoom(handle : UInt64, factor : Double) -> Int {
 }
 
 ///|
-fn native_open_devtools(handle : UInt64) -> Int {
+fn native_open_devtools(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.open_devtools(handle)
     MacOS => @macos.open_devtools(handle)
@@ -449,7 +449,7 @@ fn native_open_devtools(handle : UInt64) -> Int {
 }
 
 ///|
-fn native_open_print_dialog(handle : UInt64) -> Int {
+fn native_open_print_dialog(handle : UInt64) -> Int32 {
   match active_backend() {
     Windows => @windows.open_print_dialog(handle)
     MacOS => @macos.open_print_dialog(handle)
@@ -462,12 +462,12 @@ fn native_open_print_dialog(handle : UInt64) -> Int {
 ///|
 fn native_show_file_dialog(
   handle : UInt64,
-  kind : Int,
+  kind : Int32,
   title : Bytes,
   filters : Bytes,
   default_name : Bytes,
   initial_directory : Bytes,
-  status : Ref[Int],
+  status : Ref[Int32],
 ) -> Bytes {
   match active_backend() {
     Windows =>
@@ -490,7 +490,7 @@ fn native_show_file_dialog(
 }
 
 ///|
-fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Int {
+fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.eval(handle, script, request_id)
     MacOS => @macos.eval(handle, script, request_id)
@@ -501,7 +501,7 @@ fn native_eval(handle : UInt64, script : Bytes, request_id : Bytes) -> Int {
 }
 
 ///|
-fn native_post_message(handle : UInt64, message : Bytes) -> Int {
+fn native_post_message(handle : UInt64, message : Bytes) -> Int32 {
   match active_backend() {
     Windows => @windows.post_message(handle, message)
     MacOS => @macos.post_message(handle, message)

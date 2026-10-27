@@ -24,14 +24,26 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install MoonBit
         shell: pwsh
-        run: Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
+        run: |
+          $env:MOONBIT_INSTALL_VERSION = (Get-Content .moonbit-toolchain -Raw).Trim()
+          Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
       - name: Add MoonBit to PATH
         shell: pwsh
         run: |
           "$HOME\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Show tool versions
         shell: pwsh
-        run: moon version --all
+        run: |
+          $versions = moon version --all
+          $versions
+          $compiler = (Get-Content .moonbit-toolchain -Raw).Trim()
+          $cli = (Get-Content .moon-version -Raw).Trim()
+          if (-not ($versions | Select-String -SimpleMatch "moonc v$compiler (")) {
+            throw "MoonBit compiler $compiler is required"
+          }
+          if (-not ($versions | Select-String -SimpleMatch "moon $cli (")) {
+            throw "MoonBit CLI $cli is required"
+          }
       - name: Update MoonBit registry
         shell: pwsh
         run: moon update

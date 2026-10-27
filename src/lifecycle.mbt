@@ -15,10 +15,10 @@ priv struct Registration {
 let registrations : Map[UInt64, Registration] = Map([])
 
 ///|
-let callback_installation : Map[Int, Unit] = Map([])
+let callback_installation : Map[Int32, Unit] = Map([])
 
 ///|
-let custom_schemes_locked : Map[Int, Unit] = Map([])
+let custom_schemes_locked : Map[Int32, Unit] = Map([])
 
 ///|
 fn ensure_native_callbacks() -> Unit {
@@ -98,10 +98,10 @@ fn update_lifecycle(handle : UInt64, lifecycle : WebViewLifecycle) -> Unit {
 ///|
 fn dispatch_native_event(
   handle : UInt64,
-  kind : Int,
+  kind : Int32,
   value : Bytes,
   detail : Bytes,
-  code : Int,
+  code : Int32,
 ) -> Unit {
   match registrations.get(handle) {
     Some(registration) => {
@@ -164,7 +164,7 @@ fn update_navigation_state(handle : UInt64, event : WebViewEvent) -> Unit {
 }
 
 ///|
-fn decide_navigation(handle : UInt64, url : Bytes) -> Int {
+fn decide_navigation(handle : UInt64, url : Bytes) -> Int32 {
   match registrations.get(handle) {
     Some(registration) =>
       match (registration.on_navigation)(decode_utf8(url)) {
@@ -176,7 +176,7 @@ fn decide_navigation(handle : UInt64, url : Bytes) -> Int {
 }
 
 ///|
-fn decide_new_window(handle : UInt64, url : Bytes) -> Int {
+fn decide_new_window(handle : UInt64, url : Bytes) -> Int32 {
   match registrations.get(handle) {
     Some(registration) =>
       match (registration.on_new_window)(decode_utf8(url)) {
@@ -214,7 +214,11 @@ fn dispatch_protocol_request(
 }
 
 ///|
-fn decide_media_permission(handle : UInt64, kind : Int, origin : Bytes) -> Int {
+fn decide_media_permission(
+  handle : UInt64,
+  kind : Int32,
+  origin : Bytes,
+) -> Int32 {
   match media_permission_kind_from_native(kind) {
     Unknown(_) => 0
     kind =>
@@ -235,10 +239,10 @@ fn decide_media_permission(handle : UInt64, kind : Int, origin : Bytes) -> Int {
 
 ///|
 fn decode_native_event(
-  kind : Int,
+  kind : Int32,
   value : Bytes,
   detail : Bytes,
-  code : Int,
+  code : Int32,
 ) -> WebViewEvent {
   let value = decode_utf8(value)
   let detail = decode_utf8(detail)
@@ -342,7 +346,7 @@ fn decode_http_headers(bytes : Bytes) -> Array[HttpHeader] {
 }
 
 ///|
-fn append_u32be(output : Array[Byte], value : Int) -> Unit {
+fn append_u32be(output : Array[Byte], value : Int32) -> Unit {
   output.push(((value >> 24) & 0xff).to_byte())
   output.push(((value >> 16) & 0xff).to_byte())
   output.push(((value >> 8) & 0xff).to_byte())
@@ -357,7 +361,7 @@ fn append_bytes(output : Array[Byte], value : Bytes) -> Unit {
 }
 
 ///|
-fn read_u32be(bytes : Bytes, offset : Int) -> Int? {
+fn read_u32be(bytes : Bytes, offset : Int32) -> Int32? {
   if offset < 0 || offset + 4 > bytes.length() {
     None
   } else {
@@ -371,7 +375,7 @@ fn read_u32be(bytes : Bytes, offset : Int) -> Int? {
 }
 
 ///|
-fn media_permission_kind_from_native(kind : Int) -> MediaPermissionKind {
+fn media_permission_kind_from_native(kind : Int32) -> MediaPermissionKind {
   match kind {
     1 => Camera
     2 => Microphone

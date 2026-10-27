@@ -30,7 +30,7 @@ let registrations : Map[Int64, Registration] = Map([])
 let next_handle : Ref[Int64] = Ref(1L)
 
 ///|
-let callback_installed : Map[Int, Unit] = Map([])
+let callback_installed : Map[Int32, Unit] = Map([])
 
 ///|
 fn ensure_callback() -> Unit {
@@ -100,8 +100,7 @@ fn belongs_to_origin(url : String, origin : String) -> Bool {
 
 ///|
 fn is_asset_url(url : String, origin : String) -> Bool {
-  belongs_to_origin(url, origin) &&
-  url.to_array().starts_with((origin + "/assets/").to_array())
+  belongs_to_origin(url, origin) && url.has_prefix(origin + "/assets/")
 }
 
 ///|

@@ -485,7 +485,7 @@ fn owner_thread_result(on_owner_thread : Bool) -> Result[Unit, WebViewError] {
 fn WebView::with_handle(
   self : WebView,
   operation_name : String,
-  operation : (UInt64) -> Int,
+  operation : (UInt64) -> Int32,
 ) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
     Err(WrongThread)
@@ -508,7 +508,7 @@ fn WebView::with_handle(
 fn WebView::with_ohos_supported_handle(
   self : WebView,
   operation_name : String,
-  operation : (UInt64) -> Int,
+  operation : (UInt64) -> Int32,
 ) -> Result[Unit, WebViewError] {
   if !self.on_owner_thread() {
     Err(WrongThread)
@@ -524,7 +524,7 @@ fn WebView::with_ohos_supported_handle(
 ///|
 fn command_result(
   operation_name : String,
-  accepted : Int,
+  accepted : Int32,
 ) -> Result[Unit, WebViewError] {
   if accepted != 0 {
     Ok(())

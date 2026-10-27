@@ -6,63 +6,63 @@ import {
 }
 
 // Values
-pub fn add_init_script(UInt64, Bytes) -> Int
+pub fn add_init_script(UInt64, Bytes) -> Int32
 
-pub fn available() -> Int
+pub fn available() -> Int32
 
-pub fn create(UInt64, Bool, Bytes, UInt64, Int, Int, Int, Int, Bytes, Bytes, Bytes, Bytes, Int, Int, Int) -> UInt64
+pub fn create(UInt64, Bool, Bytes, UInt64, Int32, Int32, Int32, Int32, Bytes, Bytes, Bytes, Bytes, Int32, Int32, Int32) -> UInt64
 
 pub fn current_thread_token() -> UInt64
 
-pub fn destroy(UInt64) -> Int
+pub fn destroy(UInt64) -> Int32
 
-pub fn eval(UInt64, Bytes, Bytes) -> Int
+pub fn eval(UInt64, Bytes, Bytes) -> Int32
 
-pub fn focus(UInt64) -> Int
+pub fn focus(UInt64) -> Int32
 
-pub fn go_back(UInt64) -> Int
+pub fn go_back(UInt64) -> Int32
 
-pub fn go_forward(UInt64) -> Int
+pub fn go_forward(UInt64) -> Int32
 
-pub fn install_event_callback(FuncRef[((UInt64, Int, Bytes, Bytes, Int) -> Unit, UInt64, Int, Bytes, Bytes, Int) -> Unit], (UInt64, Int, Bytes, Bytes, Int) -> Unit) -> Unit
+pub fn install_event_callback(FuncRef[((UInt64, Int32, Bytes, Bytes, Int32) -> Unit, UInt64, Int32, Bytes, Bytes, Int32) -> Unit], (UInt64, Int32, Bytes, Bytes, Int32) -> Unit) -> Unit
 
-pub fn install_media_permission_callback(FuncRef[((UInt64, Int, Bytes) -> Int, UInt64, Int, Bytes) -> Int], (UInt64, Int, Bytes) -> Int) -> Unit
+pub fn install_media_permission_callback(FuncRef[((UInt64, Int32, Bytes) -> Int32, UInt64, Int32, Bytes) -> Int32], (UInt64, Int32, Bytes) -> Int32) -> Unit
 
-pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
+pub fn install_navigation_callback(FuncRef[((UInt64, Bytes) -> Int32, UInt64, Bytes) -> Int32], (UInt64, Bytes) -> Int32) -> Unit
 
-pub fn install_new_window_callback(FuncRef[((UInt64, Bytes) -> Int, UInt64, Bytes) -> Int], (UInt64, Bytes) -> Int) -> Unit
+pub fn install_new_window_callback(FuncRef[((UInt64, Bytes) -> Int32, UInt64, Bytes) -> Int32], (UInt64, Bytes) -> Int32) -> Unit
 
 pub fn install_protocol_callback(FuncRef[((UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit, UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit], (UInt64, Bytes, Bytes, Bytes, Bytes, Bytes, Bytes) -> Unit) -> Unit
 
-pub fn load_html(UInt64, Bytes) -> Int
+pub fn load_html(UInt64, Bytes) -> Int32
 
 pub fn lock_custom_schemes() -> Unit
 
-pub fn navigate(UInt64, Bytes) -> Int
+pub fn navigate(UInt64, Bytes) -> Int32
 
-pub fn open_devtools(UInt64) -> Int
+pub fn open_devtools(UInt64) -> Int32
 
-pub fn open_print_dialog(UInt64) -> Int
+pub fn open_print_dialog(UInt64) -> Int32
 
-pub fn post_message(UInt64, Bytes) -> Int
+pub fn post_message(UInt64, Bytes) -> Int32
 
-pub fn register_custom_scheme(Bytes) -> Int
+pub fn register_custom_scheme(Bytes) -> Int32
 
-pub fn reload(UInt64) -> Int
+pub fn reload(UInt64) -> Int32
 
-pub fn respond_protocol(UInt64, Bytes, Int, Bytes, Bytes) -> Int
+pub fn respond_protocol(UInt64, Bytes, Int32, Bytes, Bytes) -> Int32
 
-pub fn set_bounds(UInt64, Int, Int, Int, Int) -> Int
+pub fn set_bounds(UInt64, Int32, Int32, Int32, Int32) -> Int32
 
-pub fn set_visible(UInt64, Int) -> Int
+pub fn set_visible(UInt64, Int32) -> Int32
 
-pub fn set_zoom(UInt64, Double) -> Int
+pub fn set_zoom(UInt64, Double) -> Int32
 
-pub fn show_file_dialog(UInt64, Int, Bytes, Bytes, Bytes, Bytes, @ref.Ref[Int]) -> Bytes
+pub fn show_file_dialog(UInt64, Int32, Bytes, Bytes, Bytes, Bytes, @ref.Ref[Int32]) -> Bytes
 
 pub fn start(UInt64) -> Unit
 
-pub fn stop(UInt64) -> Int
+pub fn stop(UInt64) -> Int32
 
 // Errors
 

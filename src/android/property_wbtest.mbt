@@ -1,7 +1,7 @@
 ///|
 test "quickcheck: Android asset URLs stay under the exact trusted origin" {
   @quickcheck.check(
-    (input : (Int, String)) => {
+    (input : (Int32, String)) => {
       let (host_seed, path) = input
       let origin = "https://app-\{host_seed}.example.test"
       let foreign_origin = "https://app-\{host_seed}.other.test"
@@ -22,7 +22,7 @@ test "quickcheck: Android asset URLs stay under the exact trusted origin" {
 ///|
 test "quickcheck: Android accepts only bare HTTPS authorities" {
   @quickcheck.check(
-    (input : (Int, String)) => {
+    (input : (Int32, String)) => {
       let (host_seed, suffix) = input
       let host = "app-\{host_seed}.example.test"
       let origin = "https://" + host
@@ -44,7 +44,7 @@ test "quickcheck: Android accepts only bare HTTPS authorities" {
 ///|
 test "quickcheck: Android initial navigation uses the asset URL policy" {
   @quickcheck.check(
-    (input : (Int, String)) => {
+    (input : (Int32, String)) => {
       let (host_seed, path) = input
       let origin = "https://app-\{host_seed}.example.test"
       let bounds = AndroidBounds::new(x=0, y=0, width=1, height=1)

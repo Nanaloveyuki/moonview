@@ -23,11 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install MoonBit
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$(cat .moonbit-toolchain)"
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Show tool versions
-        run: moon version --all
+        run: |
+          moon version --all
+          moon version --all | grep -F "moonc v$(cat .moonbit-toolchain) ("
+          moon version --all | grep -F "moon $(cat .moon-version) ("
       - name: Update MoonBit registry
         run: moon update
       - name: Install MoonBit dependencies

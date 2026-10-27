@@ -271,6 +271,24 @@ the smoke contract complete. Omit the environment variable in CI.
 
 ## Platform Prerequisites
 
+Use MoonBit compiler `0.10.17+d971670cd` with CLI `0.1.20261023` for this
+checkout. `.moonbit-toolchain` selects the installer archive; `.moon-version`
+records the CLI version. On Unix, install the pinned archive with:
+
+```sh
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$(cat .moonbit-toolchain)"
+```
+
+On Windows, set the archive selector before running the installer:
+
+```powershell
+$env:MOONBIT_INSTALL_VERSION = (Get-Content .moonbit-toolchain -Raw).Trim()
+irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+```
+
+Confirm both versions with `moon version --all`; the CLI version is not an
+installer archive identifier.
+
 - Windows: Visual Studio Build Tools and the Edge WebView2 Runtime. On the
   first native build, Moonview downloads the official Microsoft WebView2 SDK
   `1.0.4078.44`, verifies its pinned SHA-256 digest, and atomically extracts it
@@ -307,6 +325,14 @@ moon test --target native
 node --test tests/build.test.js
 .\scripts\test-windows.ps1
 .\scripts\test-windows.ps1 -WebView2Sdk F:\path\to\Microsoft.Web.WebView2.1.0.x
+```
+
+On Linux, after `moon update` and installing the platform prerequisites:
+
+```sh
+moon check --target native
+node --test tests/build.test.js
+xvfb-run -a sh scripts/test-linux.sh
 ```
 
 macOS and Fedora native smoke coverage runs in GitHub Actions.

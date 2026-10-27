@@ -1,10 +1,10 @@
 ///|
 /// A pixel rectangle inside the Kotlin host's attached `FrameLayout`.
 pub(all) struct AndroidBounds {
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -90,7 +90,7 @@ pub extend AndroidAssetRequest with Debug::{to_repr}
 ///|
 /// A response for an `AndroidAssetRequest`.
 pub(all) struct AndroidAssetResponse {
-  status : Int
+  status : Int32
   mime_type : String
   encoding : String
   headers : Array[AndroidHeader]
@@ -113,10 +113,10 @@ pub extend AndroidAssetResponse with Debug::{to_repr}
 /// A value of `0` disables its corresponding limit. Negative values are
 /// rejected before the native host is called.
 pub(all) struct AndroidResourceLimits {
-  max_page_message_bytes : Int
-  max_pending_asset_requests : Int
-  max_asset_response_bytes : Int
-  asset_response_timeout_millis : Int
+  max_page_message_bytes : Int32
+  max_pending_asset_requests : Int32
+  max_asset_response_bytes : Int32
+  asset_response_timeout_millis : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -190,10 +190,10 @@ pub(all) struct AndroidWebViewOptions {
 
 ///|
 pub fn AndroidBounds::new(
-  x~ : Int,
-  y~ : Int,
-  width~ : Int,
-  height~ : Int,
+  x~ : Int32,
+  y~ : Int32,
+  width~ : Int32,
+  height~ : Int32,
 ) -> AndroidBounds {
   { x, y, width, height, }
 }
@@ -205,21 +205,21 @@ pub fn AndroidHeader::new(name~ : String, value~ : String) -> AndroidHeader {
 
 ///|
 pub fn AndroidAssetResponse::new(
-  status~ : Int,
+  status~ : Int32,
   mime_type~ : String,
-  encoding? : String = "utf-8",
-  headers? : Array[AndroidHeader] = [],
-  body? : Bytes = b"",
+  encoding~ : String = "utf-8",
+  headers~ : Array[AndroidHeader] = [],
+  body~ : Bytes = b"",
 ) -> AndroidAssetResponse {
   { status, mime_type, encoding, headers, body, }
 }
 
 ///|
 pub fn AndroidResourceLimits::new(
-  max_page_message_bytes? : Int = 1024 * 1024,
-  max_pending_asset_requests? : Int = 32,
-  max_asset_response_bytes? : Int = 8 * 1024 * 1024,
-  asset_response_timeout_millis? : Int = 10 * 1000,
+  max_page_message_bytes~ : Int32 = 1024 * 1024,
+  max_pending_asset_requests~ : Int32 = 32,
+  max_asset_response_bytes~ : Int32 = 8 * 1024 * 1024,
+  asset_response_timeout_millis~ : Int32 = 10 * 1000,
 ) -> AndroidResourceLimits {
   {
     max_page_message_bytes,
@@ -233,10 +233,10 @@ pub fn AndroidResourceLimits::new(
 pub fn AndroidWebViewOptions::new(
   bounds~ : AndroidBounds,
   trusted_origin~ : String,
-  initial_content? : AndroidInitialContent = Empty,
-  document_start_scripts? : Array[String] = [],
-  resource_limits? : AndroidResourceLimits = AndroidResourceLimits::new(),
-  on_event? : (AndroidWebViewEvent) -> Unit = ignore_event,
+  initial_content~ : AndroidInitialContent = Empty,
+  document_start_scripts~ : Array[String] = [],
+  resource_limits~ : AndroidResourceLimits = AndroidResourceLimits::new(),
+  on_event~ : (AndroidWebViewEvent) -> Unit = ignore_event,
 ) -> AndroidWebViewOptions {
   {
     bounds,

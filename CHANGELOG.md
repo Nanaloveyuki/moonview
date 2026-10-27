@@ -2,6 +2,13 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## Unreleased
+
+- Pin the compiler archive to `0.10.17+d971670cd` and CLI to `0.1.20261023`,
+  including exact-version installation in Linux, macOS, and Windows CI.
+- Replace the deprecated array-prefix check in Android asset routing with a
+  string-prefix check, preserving routing behavior without temporary arrays.
+
 ## 0.1.0-beta.11
 
 - Pin the project to MoonBit 0.1.20260920 (`moonc` 0.10.14).

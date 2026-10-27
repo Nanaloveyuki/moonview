@@ -35,10 +35,12 @@ jobs:
             webkit2gtk4.1-devel \
             xorg-x11-server-Xvfb
       - name: Install MoonBit
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$(cat .moonbit-toolchain)"
       - name: Show tool versions
         run: |
           "$HOME/.moon/bin/moon" version --all
+          "$HOME/.moon/bin/moon" version --all | grep -F "moonc v$(cat .moonbit-toolchain) ("
+          "$HOME/.moon/bin/moon" version --all | grep -F "moon $(cat .moon-version) ("
       - name: Update MoonBit registry
         run: |
           "$HOME/.moon/bin/moon" update

@@ -23,7 +23,7 @@ fn qc_without_last_byte(bytes : Bytes) -> Bytes {
 }
 
 ///|
-fn qc_append_u32be(output : Array[Byte], value : Int) -> Unit {
+fn qc_append_u32be(output : Array[Byte], value : Int32) -> Unit {
   output.push(((value >> 24) & 0xff).to_byte())
   output.push(((value >> 16) & 0xff).to_byte())
   output.push(((value >> 8) & 0xff).to_byte())

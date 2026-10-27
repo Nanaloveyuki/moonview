@@ -13,7 +13,7 @@ pub struct Contract {
 ///|
 pub fn Contract::new(
   finish : (Bool) -> Unit,
-  require_message_source? : Bool = false,
+  require_message_source~ : Bool = false,
 ) -> Contract {
   {
     view: None,

@@ -1,10 +1,10 @@
 ///|
 /// A pixel rectangle relative to the caller-owned native parent container.
 pub(all) struct Rect {
-  x : Int
-  y : Int
-  width : Int
-  height : Int
+  x : Int32
+  y : Int32
+  width : Int32
+  height : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -47,7 +47,7 @@ pub(all) enum WebViewError {
   /// The command must run on the UI thread that created this WebView.
   WrongThread
   Destroyed
-  NativeFailure(Int, String)
+  NativeFailure(Int32, String)
 } derive(Eq, Debug)
 
 ///|
@@ -230,7 +230,7 @@ pub extend ProtocolRequest with Debug::{to_repr}
 ///|
 /// A response to a pending custom-scheme request.
 pub(all) struct ProtocolResponse {
-  status : Int
+  status : Int32
   headers : Array[HttpHeader]
   body : Bytes
 } derive(Eq, Debug)
@@ -253,9 +253,9 @@ pub extend ProtocolResponse with Debug::{to_repr}
 /// A value of `0` disables the corresponding limit. Negative values are
 /// rejected by `WebView::create`.
 pub(all) struct WebViewResourceLimits {
-  max_pending_commands : Int
-  max_pending_command_bytes : Int
-  max_protocol_request_body_bytes : Int
+  max_pending_commands : Int32
+  max_pending_command_bytes : Int32
+  max_protocol_request_body_bytes : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -274,7 +274,7 @@ pub(all) enum MediaPermissionKind {
   Camera
   Microphone
   CameraAndMicrophone
-  Unknown(Int)
+  Unknown(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -390,21 +390,26 @@ pub(all) struct OhosAttachOptions {
 
 ///|
 pub fn OhosAttachOptions::new(
-  on_event? : (WebViewEvent) -> Unit = ignore_event,
+  on_event~ : (WebViewEvent) -> Unit = ignore_event,
 ) -> OhosAttachOptions {
   { on_event, }
 }
 
 ///|
-pub fn Rect::new(x~ : Int, y~ : Int, width~ : Int, height~ : Int) -> Rect {
+pub fn Rect::new(
+  x~ : Int32,
+  y~ : Int32,
+  width~ : Int32,
+  height~ : Int32,
+) -> Rect {
   { x, y, width, height, }
 }
 
 ///|
 pub fn NavigationState::new(
-  url? : String = "",
-  can_go_back? : Bool = false,
-  can_go_forward? : Bool = false,
+  url~ : String = "",
+  can_go_back~ : Bool = false,
+  can_go_forward~ : Bool = false,
 ) -> NavigationState {
   { url, can_go_back, can_go_forward, }
 }
@@ -420,10 +425,10 @@ pub fn FileDialogFilter::new(
 ///|
 pub fn FileDialogOptions::new(
   kind~ : FileDialogKind,
-  title? : String? = None,
-  filters? : Array[FileDialogFilter] = [],
-  default_name? : String? = None,
-  initial_directory? : String? = None,
+  title~ : String? = None,
+  filters~ : Array[FileDialogFilter] = [],
+  default_name~ : String? = None,
+  initial_directory~ : String? = None,
 ) -> FileDialogOptions {
   { kind, title, filters, default_name, initial_directory, }
 }
@@ -435,18 +440,18 @@ pub fn HttpHeader::new(name~ : String, value~ : String) -> HttpHeader {
 
 ///|
 pub fn ProtocolResponse::new(
-  status~ : Int,
-  headers? : Array[HttpHeader] = [],
-  body? : Bytes = b"",
+  status~ : Int32,
+  headers~ : Array[HttpHeader] = [],
+  body~ : Bytes = b"",
 ) -> ProtocolResponse {
   { status, headers, body, }
 }
 
 ///|
 pub fn WebViewResourceLimits::new(
-  max_pending_commands? : Int = 256,
-  max_pending_command_bytes? : Int = 4 * 1024 * 1024,
-  max_protocol_request_body_bytes? : Int = 4 * 1024 * 1024,
+  max_pending_commands~ : Int32 = 256,
+  max_pending_command_bytes~ : Int32 = 4 * 1024 * 1024,
+  max_protocol_request_body_bytes~ : Int32 = 4 * 1024 * 1024,
 ) -> WebViewResourceLimits {
   {
     max_pending_commands,
@@ -458,17 +463,17 @@ pub fn WebViewResourceLimits::new(
 ///|
 pub fn WebViewOptions::new(
   bounds~ : Rect,
-  context? : WebContext = WebContext::persistent(),
-  resource_limits? : WebViewResourceLimits = WebViewResourceLimits::new(),
-  initial_url? : String = "",
-  initial_html? : String = "",
-  initialization_script? : String = "",
-  user_agent? : String = "",
-  visible? : Bool = true,
-  on_event? : (WebViewEvent) -> Unit = ignore_event,
-  on_navigation? : (String) -> NavigationDecision = allow_navigation,
-  on_new_window? : (String) -> NewWindowDecision = deny_new_window,
-  on_media_permission? : (MediaPermissionRequest) -> MediaPermissionDecision = deny_media_permission,
+  context~ : WebContext = WebContext::persistent(),
+  resource_limits~ : WebViewResourceLimits = WebViewResourceLimits::new(),
+  initial_url~ : String = "",
+  initial_html~ : String = "",
+  initialization_script~ : String = "",
+  user_agent~ : String = "",
+  visible~ : Bool = true,
+  on_event~ : (WebViewEvent) -> Unit = ignore_event,
+  on_navigation~ : (String) -> NavigationDecision = allow_navigation,
+  on_new_window~ : (String) -> NewWindowDecision = deny_new_window,
+  on_media_permission~ : (MediaPermissionRequest) -> MediaPermissionDecision = deny_media_permission,
 ) -> WebViewOptions {
   {
     context,
