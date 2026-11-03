@@ -2,6 +2,12 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.13
+
+- Pin the compiler archive to `0.10.19+97801ee1b` and CLI to `0.1.20261029`
+  for local development and Linux, macOS, and Windows CI.
+- Update the Android WebView bridge dependency to `Nanaloveyuki/ajni@0.3.5`.
+
 ## 0.1.0-beta.12
 
 - Pin the compiler archive to `0.10.17+d971670cd` and CLI to `0.1.20261023`,

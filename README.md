@@ -14,7 +14,7 @@ Do not substitute the current or pending navigation URL when authorizing IPC.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.12
+moon add Nanaloveyuki/moonview@0.1.0-beta.13
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -271,7 +271,7 @@ the smoke contract complete. Omit the environment variable in CI.
 
 ## Platform Prerequisites
 
-Use MoonBit compiler `0.10.17+d971670cd` with CLI `0.1.20261023` for this
+Use MoonBit compiler `0.10.19+97801ee1b` with CLI `0.1.20261029` for this
 checkout. `.moonbit-toolchain` selects the installer archive; `.moon-version`
 records the CLI version. On Unix, install the pinned archive with:
 
@@ -302,6 +302,9 @@ installer archive identifier.
   system.
 - Linux: GTK 3 and the `webkit2gtk-4.1` development package available through
   `pkg-config`. The Linux smoke also works through WSLg.
+  On Debian or Ubuntu, install `build-essential`, `nodejs`, `pkg-config`,
+  `libgtk-3-dev`, and `libwebkit2gtk-4.1-dev`; headless smoke runs also need
+  `xvfb` and `xauth`.
 - OpenHarmony: an app manifest declaring `SystemCapability.Web.Webview.Core`
   and the user-supplied ArkWeb NDK. Set `MOONVIEW_OHOS_ARKWEB_SDK_DIR` (or
   `MOONVIEW_OHOS_NDK_HOME`) to a directory containing
@@ -335,6 +338,15 @@ node --test tests/build.test.js
 xvfb-run -a sh scripts/test-linux.sh
 ```
 
+With an active WSLg display, run `sh scripts/test-linux.sh` directly instead
+of wrapping it with `xvfb-run`. To run only the lifecycle smoke as a compiled
+native executable:
+
+```sh
+moon build src/examples/linux_smoke --target native
+./_build/native/debug/build/examples/linux_smoke/linux_smoke.exe
+```
+
 macOS and Fedora native smoke coverage runs in GitHub Actions.
 
 ## Contributing
@@ -344,5 +356,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.12` is an API preview. Compatibility may change before stable
+`0.1.0-beta.13` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.
