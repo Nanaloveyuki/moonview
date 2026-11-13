@@ -1,9 +1,10 @@
 ///|
 /// A WebView created through the optional `Nanaloveyuki/ajni/webview` feature.
 /// The Android Kotlin host owns the underlying `android.webkit.WebView`.
+#derive(Eq, Debug)
 pub struct AndroidWebView {
   priv handle : Int64
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)

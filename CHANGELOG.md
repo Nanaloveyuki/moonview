@@ -2,6 +2,12 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.1.0-beta.14
+
+- Pin compiler archive `0.10.20+65efd5b93` and CLI `0.1.20261104` across development and all native CI platforms.
+- Migrate trait derivations to `#derive` without changing the public WebView API.
+- Update the Android bridge to `Nanaloveyuki/ajni@0.3.7`; resolve CI dependencies through `moon check` instead of the removed argument-less `moon install`.
+
 ## 0.1.0-beta.13
 
 - Pin the compiler archive to `0.10.19+97801ee1b` and CLI to `0.1.20261029`

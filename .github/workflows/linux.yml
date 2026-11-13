@@ -44,9 +44,9 @@ jobs:
       - name: Update MoonBit registry
         run: |
           "$HOME/.moon/bin/moon" update
-      - name: Install MoonBit dependencies
+      - name: Resolve MoonBit dependencies
         run: |
-          "$HOME/.moon/bin/moon" install
+          "$HOME/.moon/bin/moon" check --target native
       - name: Check formatting and exported interfaces
         shell: bash
         run: |

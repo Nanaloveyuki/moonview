@@ -1,6 +1,6 @@
 name = "Nanaloveyuki/moonview"
 
-version = "0.1.0-beta.13"
+version = "0.1.0-beta.14"
 
 description = "Direct native WebView embedding for MoonBit."
 
@@ -27,7 +27,7 @@ preferred_target = "native"
 source = "src"
 
 import {
-  "Nanaloveyuki/ajni@0.3.5",
+  "Nanaloveyuki/ajni@0.3.7",
 }
 
 options(

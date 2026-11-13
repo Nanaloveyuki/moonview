@@ -1,9 +1,10 @@
 ///|
 /// The persistence policy for browser data owned by a WebContext.
+#derive(Eq, Debug)
 pub(all) enum WebContextStorage {
   Persistent
   Ephemeral
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -17,11 +18,12 @@ pub extend WebContextStorage with Debug::{to_repr}
 
 ///|
 /// A browser-data context that can be shared by multiple WebViews.
+#derive(Eq, Debug)
 pub(all) struct WebContext {
   priv id : UInt64
   priv storage : WebContextStorage
   priv data_directory : String
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)

@@ -14,7 +14,7 @@ Do not substitute the current or pending navigation URL when authorizing IPC.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.13
+moon add Nanaloveyuki/moonview@0.1.0-beta.14
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -271,7 +271,7 @@ the smoke contract complete. Omit the environment variable in CI.
 
 ## Platform Prerequisites
 
-Use MoonBit compiler `0.10.19+97801ee1b` with CLI `0.1.20261029` for this
+Use MoonBit compiler `0.10.20+65efd5b93` with CLI `0.1.20261104` for this
 checkout. `.moonbit-toolchain` selects the installer archive; `.moon-version`
 records the CLI version. On Unix, install the pinned archive with:
 
@@ -356,5 +356,5 @@ pull request requirements.
 
 ## Preview Compatibility
 
-`0.1.0-beta.13` is an API preview. Compatibility may change before stable
+`0.1.0-beta.14` is an API preview. Compatibility may change before stable
 `0.1.0`, particularly once a concrete window-host integration contract exists.

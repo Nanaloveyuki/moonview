@@ -35,7 +35,7 @@ Set the exact version once, then create and push the annotated tag, publish,
 and create the GitHub release:
 
 ```powershell
-$version = "0.1.0-beta.13"
+$version = "0.1.0-beta.14"
 git tag -a "v$version" -m "moonview $version"
 git push origin "v$version"
 moon publish

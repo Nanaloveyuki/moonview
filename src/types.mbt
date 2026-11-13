@@ -1,11 +1,12 @@
 ///|
 /// A pixel rectangle relative to the caller-owned native parent container.
+#derive(Eq, Debug)
 pub(all) struct Rect {
   x : Int32
   y : Int32
   width : Int32
   height : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -19,12 +20,13 @@ pub extend Rect with Debug::{to_repr}
 
 ///|
 /// State reported by an asynchronously-created native WebView.
+#derive(Eq, Debug)
 pub(all) enum WebViewLifecycle {
   Creating
   Ready
   Failed(WebViewError)
   Destroyed
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -39,6 +41,7 @@ pub extend WebViewLifecycle with Debug::{to_repr}
 ///|
 /// Failures reported before or during native WebView creation, after disposal,
 /// or when a command is issued outside the owner UI thread.
+#derive(Eq, Debug)
 pub(all) enum WebViewError {
   Unavailable
   Unsupported(String)
@@ -48,7 +51,7 @@ pub(all) enum WebViewError {
   WrongThread
   Destroyed
   NativeFailure(Int32, String)
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -62,10 +65,11 @@ pub extend WebViewError with Debug::{to_repr}
 
 ///|
 /// The decision synchronously returned to a native navigation callback.
+#derive(Eq, Debug)
 pub(all) enum NavigationDecision {
   Allow
   Deny
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -80,12 +84,13 @@ pub extend NavigationDecision with Debug::{to_repr}
 ///|
 /// The decision synchronously returned when page content requests a new
 /// browser window. Moonview never creates a top-level native window itself.
+#derive(Eq, Debug)
 pub(all) enum NewWindowDecision {
   /// Reject the request without creating or navigating another WebView.
   Deny
   /// Reject the new window and navigate the requesting WebView instead.
   NavigateCurrent
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -99,12 +104,13 @@ pub extend NewWindowDecision with Debug::{to_repr}
 
 ///|
 /// The native dialog operation to present for a WebView.
+#derive(Eq, Debug)
 pub(all) enum FileDialogKind {
   OpenFile
   OpenFiles
   SaveFile
   PickDirectory
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -119,10 +125,11 @@ pub extend FileDialogKind with Debug::{to_repr}
 ///|
 /// A user-facing name and the extensions accepted by a file dialog.
 /// Extensions do not include a leading dot or wildcard.
+#derive(Eq, Debug)
 pub(all) struct FileDialogFilter {
   name : String
   extensions : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -136,13 +143,14 @@ pub extend FileDialogFilter with Debug::{to_repr}
 
 ///|
 /// Options for a native file dialog owned by a WebView's native container.
+#derive(Eq, Debug)
 pub(all) struct FileDialogOptions {
   kind : FileDialogKind
   title : String?
   filters : Array[FileDialogFilter]
   default_name : String?
   initial_directory : String?
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -156,10 +164,11 @@ pub extend FileDialogOptions with Debug::{to_repr}
 
 ///|
 /// The outcome of a native file dialog. `Cancelled` is a normal user action.
+#derive(Eq, Debug)
 pub(all) enum FileDialogResult {
   Cancelled
   Selected(Array[String])
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -173,11 +182,12 @@ pub extend FileDialogResult with Debug::{to_repr}
 
 ///|
 /// The most recently observed document URL and history availability.
+#derive(Eq, Debug)
 pub(all) struct NavigationState {
   url : String
   can_go_back : Bool
   can_go_forward : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -191,10 +201,11 @@ pub extend NavigationState with Debug::{to_repr}
 
 ///|
 /// A single HTTP header in a custom-scheme request or response.
+#derive(Eq, Debug)
 pub(all) struct HttpHeader {
   name : String
   value : String
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -208,6 +219,7 @@ pub extend HttpHeader with Debug::{to_repr}
 
 ///|
 /// A pending custom-scheme request. `body` is unmodified binary request data.
+#derive(Eq, Debug)
 pub(all) struct ProtocolRequest {
   id : String
   scheme : String
@@ -215,7 +227,7 @@ pub(all) struct ProtocolRequest {
   uri : String
   headers : Array[HttpHeader]
   body : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -229,11 +241,12 @@ pub extend ProtocolRequest with Debug::{to_repr}
 
 ///|
 /// A response to a pending custom-scheme request.
+#derive(Eq, Debug)
 pub(all) struct ProtocolResponse {
   status : Int32
   headers : Array[HttpHeader]
   body : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -252,11 +265,12 @@ pub extend ProtocolResponse with Debug::{to_repr}
 ///
 /// A value of `0` disables the corresponding limit. Negative values are
 /// rejected by `WebView::create`.
+#derive(Eq, Debug)
 pub(all) struct WebViewResourceLimits {
   max_pending_commands : Int32
   max_pending_command_bytes : Int32
   max_protocol_request_body_bytes : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -270,12 +284,13 @@ pub extend WebViewResourceLimits with Debug::{to_repr}
 
 ///|
 /// A media capture category requested by page content.
+#derive(Eq, Debug)
 pub(all) enum MediaPermissionKind {
   Camera
   Microphone
   CameraAndMicrophone
   Unknown(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -289,10 +304,11 @@ pub extend MediaPermissionKind with Debug::{to_repr}
 
 ///|
 /// A synchronous request to access local media devices from an origin.
+#derive(Eq, Debug)
 pub(all) struct MediaPermissionRequest {
   kind : MediaPermissionKind
   origin : String
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -306,10 +322,11 @@ pub extend MediaPermissionRequest with Debug::{to_repr}
 
 ///|
 /// The decision synchronously returned to a native media-permission callback.
+#derive(Eq, Debug)
 pub(all) enum MediaPermissionDecision {
   Allow
   Deny
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -328,6 +345,7 @@ pub extend MediaPermissionDecision with Debug::{to_repr}
 /// to `WebView::eval`. `ScriptResult` is JSON text; an `undefined` JavaScript
 /// result is represented as `null`. Page messages are UTF-8 strings without an
 /// imposed protocol.
+#derive(Eq, Debug)
 pub(all) enum WebViewEvent {
   Ready
   CreationFailed(WebViewError)
@@ -346,7 +364,7 @@ pub(all) enum WebViewEvent {
   ScriptFailed(String, WebViewError)
   ProtocolRequest(ProtocolRequest)
   ProtocolCancelled(String)
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)

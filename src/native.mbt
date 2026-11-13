@@ -1,12 +1,13 @@
 ///|
 /// The native backend is selected by the target operating system at compile time.
+#derive(Eq)
 priv enum NativeBackend {
   Windows
   MacOS
   Linux
   Ohos
   Unsupported
-} derive(Eq)
+}
 
 ///|
 fn active_backend() -> NativeBackend {

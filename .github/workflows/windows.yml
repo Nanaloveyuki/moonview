@@ -47,9 +47,9 @@ jobs:
       - name: Update MoonBit registry
         shell: pwsh
         run: moon update
-      - name: Install MoonBit dependencies
+      - name: Resolve MoonBit dependencies
         shell: pwsh
-        run: moon install
+        run: moon check --target native
       - name: Check formatting and exported interfaces
         shell: pwsh
         run: |

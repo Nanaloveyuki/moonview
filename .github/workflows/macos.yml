@@ -33,8 +33,8 @@ jobs:
           moon version --all | grep -F "moon $(cat .moon-version) ("
       - name: Update MoonBit registry
         run: moon update
-      - name: Install MoonBit dependencies
-        run: moon install
+      - name: Resolve MoonBit dependencies
+        run: moon check --target native
       - name: Check formatting and exported interfaces
         run: |
           moon fmt --check

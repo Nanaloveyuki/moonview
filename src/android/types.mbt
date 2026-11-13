@@ -1,11 +1,12 @@
 ///|
 /// A pixel rectangle inside the Kotlin host's attached `FrameLayout`.
+#derive(Eq, Debug)
 pub(all) struct AndroidBounds {
   x : Int32
   y : Int32
   width : Int32
   height : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -19,11 +20,12 @@ pub extend AndroidBounds with Debug::{to_repr}
 
 ///|
 /// The exclusive initial document for an Android WebView.
+#derive(Eq, Debug)
 pub(all) enum AndroidInitialContent {
   Empty
   Url(String)
   Html(String, String)
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -37,10 +39,11 @@ pub extend AndroidInitialContent with Debug::{to_repr}
 
 ///|
 /// A single HTTP-style header used for Android asset responses.
+#derive(Eq, Debug)
 pub(all) struct AndroidHeader {
   name : String
   value : String
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -54,11 +57,12 @@ pub extend AndroidHeader with Debug::{to_repr}
 
 ///|
 /// A page message accepted only from the WebView's configured trusted origin.
+#derive(Eq, Debug)
 pub(all) struct AndroidPageMessage {
   body : String
   origin : String
   is_main_frame : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -72,10 +76,11 @@ pub extend AndroidPageMessage with Debug::{to_repr}
 
 ///|
 /// A pending request for a resource under the configured Android asset origin.
+#derive(Eq, Debug)
 pub(all) struct AndroidAssetRequest {
   id : String
   path : String
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -89,13 +94,14 @@ pub extend AndroidAssetRequest with Debug::{to_repr}
 
 ///|
 /// A response for an `AndroidAssetRequest`.
+#derive(Eq, Debug)
 pub(all) struct AndroidAssetResponse {
   status : Int32
   mime_type : String
   encoding : String
   headers : Array[AndroidHeader]
   body : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -112,12 +118,13 @@ pub extend AndroidAssetResponse with Debug::{to_repr}
 ///
 /// A value of `0` disables its corresponding limit. Negative values are
 /// rejected before the native host is called.
+#derive(Eq, Debug)
 pub(all) struct AndroidResourceLimits {
   max_page_message_bytes : Int32
   max_pending_asset_requests : Int32
   max_asset_response_bytes : Int32
   asset_response_timeout_millis : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -131,12 +138,13 @@ pub extend AndroidResourceLimits with Debug::{to_repr}
 
 ///|
 /// The observable lifecycle of an asynchronously-created Android WebView.
+#derive(Eq, Debug)
 pub(all) enum AndroidWebViewLifecycle {
   Creating
   Ready
   Failed(String)
   Destroyed
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
@@ -150,6 +158,7 @@ pub extend AndroidWebViewLifecycle with Debug::{to_repr}
 
 ///|
 /// Events available through the optional Android WebView adapter.
+#derive(Eq, Debug)
 pub(all) enum AndroidWebViewEvent {
   Ready
   CreationFailed(String, String)
@@ -162,7 +171,7 @@ pub(all) enum AndroidWebViewEvent {
   AssetRequest(AndroidAssetRequest)
   OperationFailed(String, String)
   Destroyed
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated("Use `==` instead", skip_current_package=true)
