@@ -6,7 +6,8 @@ All notable changes to `moonview` are documented in this file.
 
 - Pin compiler archive `0.10.20+65efd5b93` and CLI `0.1.20261104` across development and all native CI platforms.
 - Migrate trait derivations to `#derive` without changing the public WebView API.
-- Update the Android bridge to `Nanaloveyuki/ajni@0.3.7`; resolve CI dependencies through `moon check` instead of the removed argument-less `moon install`.
+- Update the Android bridge to `Nanaloveyuki/ajni@0.3.8`; resolve CI dependencies through `moon check` instead of the removed argument-less `moon install`.
+- Use AJNI's corrected native fallback export declarations for Windows builds.
 
 ## 0.1.0-beta.13
 

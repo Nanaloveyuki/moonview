@@ -27,7 +27,7 @@ preferred_target = "native"
 source = "src"
 
 import {
-  "Nanaloveyuki/ajni@0.3.7",
+  "Nanaloveyuki/ajni@0.3.8",
 }
 
 options(
