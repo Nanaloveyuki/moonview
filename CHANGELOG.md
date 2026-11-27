@@ -2,6 +2,11 @@
 
 All notable changes to `moonview` are documented in this file.
 
+## 0.2.0
+
+- Pin MoonBit compiler archive `1.0.0-rc1+3c0520448` and CLI `0.1.20261126`.
+- Release the first stable 0.2 version with AJNI 0.4.0 for Android.
+
 ## 0.1.0-beta.14
 
 - Pin compiler archive `0.10.20+65efd5b93` and CLI `0.1.20261104` across development and all native CI platforms.

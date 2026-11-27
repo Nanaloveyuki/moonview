@@ -14,7 +14,7 @@ Do not substitute the current or pending navigation URL when authorizing IPC.
 Add the preview package to a native MoonBit module:
 
 ```sh
-moon add Nanaloveyuki/moonview@0.1.0-beta.14
+moon add Nanaloveyuki/moonview@0.2.0
 ```
 
 Add the package import in the consumer's `moon.pkg`, then refer to it as
@@ -271,7 +271,7 @@ the smoke contract complete. Omit the environment variable in CI.
 
 ## Platform Prerequisites
 
-Use MoonBit compiler `0.10.20+65efd5b93` with CLI `0.1.20261104` for this
+Use MoonBit compiler `1.0.0-rc1+3c0520448` with CLI `0.1.20261126` for this
 checkout. `.moonbit-toolchain` selects the installer archive; `.moon-version`
 records the CLI version. On Unix, install the pinned archive with:
 
@@ -354,7 +354,6 @@ macOS and Fedora native smoke coverage runs in GitHub Actions.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, validation, and
 pull request requirements.
 
-## Preview Compatibility
+## Compatibility
 
-`0.1.0-beta.14` is an API preview. Compatibility may change before stable
-`0.1.0`, particularly once a concrete window-host integration contract exists.
+MoonView 0.2.0 is the first stable release in the 0.2 series. It uses MoonBit 1.0 RC1 and AJNI 0.4.0 for the Android bridge.
